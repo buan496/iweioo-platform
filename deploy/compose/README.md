@@ -18,3 +18,18 @@ Local safeguards:
 
 See [`deploy/keycloak/README.md`](../keycloak/README.md) for lifecycle commands,
 verification, reset behavior, and limitations.
+
+## Image update policy
+
+Dependabot remains enabled for npm packages and GitHub Actions. Its Docker
+ecosystem does not discover images declared only in Compose files, so it is not
+configured for this directory.
+
+Until Renovate is evaluated and adopted for Compose image updates:
+
+1. review upstream image release notes and security advisories at least monthly;
+2. update pinned image tags in a dedicated pull request;
+3. run `npm run identity:validate` and the `Identity Smoke` CI job before merge;
+4. record any migration, rollback, or compatibility notes in that pull request.
+
+Do not replace pinned image tags with floating tags such as `latest`.
