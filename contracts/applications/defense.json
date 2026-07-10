@@ -1,0 +1,26 @@
+{
+  "schema_version": "1.0",
+  "app_id": "defense",
+  "display_name": "iweioo Thesis Defense",
+  "status": "planned",
+  "public_base_url": "https://defense.iweioo.com",
+  "oidc": {
+    "audience": "iweioo-defense",
+    "redirect_uris": ["https://defense.iweioo.com/auth/callback"],
+    "post_logout_redirect_uris": ["https://defense.iweioo.com/"]
+  },
+  "billing": {
+    "billable": true,
+    "authority": "iweioo-platform-api",
+    "service_scopes": ["usage:write", "events:write"]
+  },
+  "privacy": {
+    "owned_data_classes": ["defense-session", "document", "report", "vector-index"],
+    "lifecycle_callback_path": "/internal/v1/privacy/jobs"
+  },
+  "observability": {
+    "health_path": "/health/live",
+    "readiness_path": "/health/ready",
+    "metrics_path": "/metrics"
+  }
+}

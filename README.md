@@ -6,162 +6,152 @@
 
 ### 项目简介
 
-这是 `iweioo.com` 的开源平台仓库。当前 `v0.1.0` 保留了 Next.js 双语个人博客与作品集基线，后续将演进为面向大学生的 AI 应用平台。
+这是 `iweioo.com` 面向大学生的开源 AI 学习平台仓库。平台门户统一呈现产品、博客、关于和开源项目；大厂面试训练与论文答辩 Agent 继续作为独立应用部署在各自子域名，并通过统一身份、用量和隐私契约接入。
 
-已确认的平台架构、统一认证、数据边界、交付阶段和机器可读接入契约位于 [`docs/architecture`](docs/architecture/README.md)。
+当前版本是 Stage 1 工程基础，不代表产品已经开放：
 
-### 当前技术栈
+- `iweioo.com`：双语平台门户与内容栏目；
+- `interview.iweioo.com`：大厂面试训练，状态为建设中；
+- `defense.iweioo.com`：论文答辩 Agent，状态为建设中；
+- `auth.iweioo.com` 与计费能力：只有已批准契约，真实实现属于后续阶段。
 
-- Next.js App Router
-- TypeScript
-- 静态导出到 `out/`
-- 使用 `content/posts` 管理 MDX 文章
-- 从 GitHub `buan496` 和 Gitee `wang-jing26` 同步公开仓库
+### 仓库结构
 
-平台化改造后，Web 前端继续使用 Next.js 与 TypeScript，平台 API 和 Worker 使用 FastAPI 与 Python。具体边界以架构文档为准。
+```text
+apps/
+  web/       Next.js 平台门户
+  api/       FastAPI 平台 API 骨架
+  worker/    异步 Worker 骨架
+packages/
+  ui/        共享 UI 孵化包
+  sdk/       OpenAPI 生成类型与平台边界
+contracts/   HTTP、事件与产品接入清单
+deploy/      部署适配目录
+docs/        架构与交付文档
+tests/       跨运行时契约测试
+```
+
+面试与答辩产品源码不会合并进本仓库。完整边界见[架构文档](docs/architecture/README.md)与[工作区说明](docs/architecture/workspace.md)。
 
 ### 本地开发
 
+Node.js 22：
+
 ```bash
-npm install
+npm ci
 npm run dev
 ```
 
 访问 `http://localhost:3000/zh/` 或 `http://localhost:3000/en/`。
 
-### 内容管理
+公开仓库数据只在显式执行 `npm run sync:projects` 时更新；构建不会联网改写输入。同步结果需要作为普通代码差异审查后提交。
 
-- 在 `data/site.ts` 编辑个人资料。
-- 在 `data/project-overrides.ts` 配置项目标题、摘要、标签、顺序和可见性。
-- 在 `content/posts/zh/*.mdx` 添加中文文章。
-- 在 `content/posts/en/*.mdx` 添加英文文章。
-
-文章 frontmatter 示例：
-
-```md
----
-title: "文章标题"
-description: "简短描述"
-date: "2026-07-02"
-tags:
-  - 标签
-draft: false
----
-```
-
-### 项目同步
+Python 3.12：
 
 ```bash
-npm run sync:projects
+python -m pip install -e "apps/api[dev]" -e "apps/worker"
+iweioo-api
 ```
 
-同步脚本会把公开仓库数据标准化后写入 `public/data/projects.json`。构建会先执行同步；如果 GitHub 或 Gitee 暂时不可用，则继续使用已有的本地数据文件。
+平台 API 健康端点为 `http://127.0.0.1:8000/v1/health/live` 和 `/v1/health/ready`。Worker 可用 `iweioo-worker --healthcheck` 检查进程骨架。
 
-### 质量检查与构建
+### 质量验证
 
 ```bash
+npm run generate:sdk
 npm run lint
 npm run typecheck
 npm test
 npm run build
+python -m ruff check apps/api apps/worker
+python -m mypy apps/api/src apps/worker/src
+python -m pytest
 ```
 
-当前静态站点构建产物位于 `out/`。
+Web 静态产物位于 `apps/web/out/`。CI 会拒绝 SDK 生成结果漂移。
 
-### 仓库、域名与邮箱
+### 域名、许可与安全
 
 - 规范仓库：<https://github.com/buan496/iweioo-platform>
 - 规范域名：`iweioo.com`
 - 联系邮箱：`contact@iweioo.com`
+- 源码许可：`AGPL-3.0-only`
 
-Gitee 目前只作为公开项目数据源，本仓库不会向 Gitee 推送源码。
-
-生产环境计划部署在腾讯云中国大陆节点。服务器购买、备案、DNS 与子域名路由以[系统架构](docs/architecture/system-architecture.md)和正式部署文档为准；`www` 将重定向到规范域名 `iweioo.com`。
-
-### 许可证、安全与品牌
-
-源代码采用 `AGPL-3.0-only`，完整条款与声明见 `LICENSE` 和 `NOTICE`。`iweioo` 名称、Logo 和品牌资产由 `TRADEMARKS.md` 单独约束。
-
-安全问题必须按照 `SECURITY.md` 私密报告，不要在公开 Issue 中披露漏洞细节。贡献流程与 DCO 签署规则见 `CONTRIBUTING.md`。
+`iweioo` 名称、Logo 和品牌资产由 `TRADEMARKS.md` 单独约束。安全问题必须按照 `SECURITY.md` 私密报告。贡献流程与 DCO 签署规则见 `CONTRIBUTING.md`。
 
 ## English
 
 ### Overview
 
-This is the open-source platform repository for `iweioo.com`. The current `v0.1.0` preserves the Next.js bilingual blog and portfolio baseline. It will evolve into an AI application platform for university students.
+This is the open-source platform repository for `iweioo.com`, an AI learning platform for university students. The portal presents products, writing, about, and open-source work. The technical-interview and thesis-defense products stay independently deployable and integrate through shared identity, usage, and privacy contracts.
 
-The accepted platform architecture, centralized identity model, data boundaries, delivery stages, and machine-readable integration contracts are documented in [`docs/architecture`](docs/architecture/README.md).
+The current release is a Stage 1 engineering foundation, not a public-product claim:
 
-### Current stack
+- `iweioo.com`: bilingual platform portal and content;
+- `interview.iweioo.com`: interview training, marked in development;
+- `defense.iweioo.com`: thesis-defense agent, marked in development;
+- `auth.iweioo.com` and billing: accepted contracts only; implementation follows later.
 
-- Next.js App Router
-- TypeScript
-- Static export to `out/`
-- MDX posts under `content/posts`
-- Public repository sync from GitHub `buan496` and Gitee `wang-jing26`
+### Repository layout
 
-After the platform transition, the web frontend will continue to use Next.js and TypeScript, while the platform API and workers will use FastAPI and Python. The architecture documents are authoritative for these boundaries.
+```text
+apps/
+  web/       Next.js platform portal
+  api/       FastAPI platform API skeleton
+  worker/    asynchronous worker skeleton
+packages/
+  ui/        shared UI incubation package
+  sdk/       OpenAPI-generated types and platform boundaries
+contracts/   HTTP, event, and product onboarding manifests
+deploy/      deployment adapters
+docs/        architecture and delivery documentation
+tests/       cross-runtime contract tests
+```
+
+The interview and defense product source code does not move into this repository. See the [architecture baseline](docs/architecture/README.md) and [workspace guide](docs/architecture/workspace.md).
 
 ### Local development
 
+With Node.js 22:
+
 ```bash
-npm install
+npm ci
 npm run dev
 ```
 
 Open `http://localhost:3000/zh/` or `http://localhost:3000/en/`.
 
-### Content management
+Public repository data changes only when `npm run sync:projects` is run explicitly. Builds never rewrite their inputs from the network; review and commit sync output as a normal code change.
 
-- Edit profile data in `data/site.ts`.
-- Configure project titles, summaries, tags, ordering, and visibility in `data/project-overrides.ts`.
-- Add Chinese posts in `content/posts/zh/*.mdx`.
-- Add English posts in `content/posts/en/*.mdx`.
-
-Post frontmatter example:
-
-```md
----
-title: "Post title"
-description: "Short description"
-date: "2026-07-02"
-tags:
-  - Tag
-draft: false
----
-```
-
-### Project sync
+With Python 3.12:
 
 ```bash
-npm run sync:projects
+python -m pip install -e "apps/api[dev]" -e "apps/worker"
+iweioo-api
 ```
 
-The sync script normalizes public repository data into `public/data/projects.json`. Builds run the sync first. If GitHub or Gitee is temporarily unavailable, the existing local data file remains in use.
+The platform API exposes `/v1/health/live` and `/v1/health/ready`. Use `iweioo-worker --healthcheck` for a one-shot worker process check.
 
-### Quality checks and build
+### Quality checks
 
 ```bash
+npm run generate:sdk
 npm run lint
 npm run typecheck
 npm test
 npm run build
+python -m ruff check apps/api apps/worker
+python -m mypy apps/api/src apps/worker/src
+python -m pytest
 ```
 
-The current static site is exported to `out/`.
+The static web output is written to `apps/web/out/`. CI rejects generated SDK drift.
 
-### Repository, domain, and email
+### Domain, license, and security
 
 - Canonical repository: <https://github.com/buan496/iweioo-platform>
 - Canonical domain: `iweioo.com`
-- Contact email: `contact@iweioo.com`
+- Contact: `contact@iweioo.com`
+- Source license: `AGPL-3.0-only`
 
-Gitee is currently a public project data source only. This repository is not configured to push source code to Gitee.
-
-Production is planned for Tencent Cloud's mainland China region. Server purchase, ICP filing, DNS, and subdomain routing follow the [system architecture](docs/architecture/system-architecture.md) and the future production deployment guide. `www` will redirect to the canonical `iweioo.com` host.
-
-### License, security, and brand
-
-Source code is licensed under `AGPL-3.0-only`. See `LICENSE` and `NOTICE` for the complete terms and notices. The iweioo name, logo, and brand assets are governed separately by `TRADEMARKS.md`.
-
-Security issues must be reported privately as described in `SECURITY.md`; do not disclose vulnerability details in a public issue. See `CONTRIBUTING.md` for the contribution workflow and DCO sign-off requirements.
+The iweioo name, logo, and brand assets are governed separately by `TRADEMARKS.md`. Report security issues privately under `SECURITY.md`. See `CONTRIBUTING.md` for workflow and DCO sign-off requirements.

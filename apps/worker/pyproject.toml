@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools>=80"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "iweioo-platform-worker"
+version = "0.1.0"
+description = "Asynchronous worker boundary for the iweioo platform."
+requires-python = ">=3.12"
+
+[project.scripts]
+iweioo-worker = "iweioo_worker.main:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

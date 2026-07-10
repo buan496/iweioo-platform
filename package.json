@@ -1,33 +1,26 @@
 {
-  "name": "iweioo-blog",
-  "version": "0.1.0",
+  "name": "iweioo-platform",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
+  "workspaces": [
+    "apps/web",
+    "packages/sdk",
+    "packages/ui"
+  ],
   "scripts": {
-    "dev": "next dev",
-    "build": "npm run sync:projects && next build",
-    "typecheck": "tsc --noEmit",
-    "lint": "eslint . --max-warnings=0",
-    "sync:projects": "tsx scripts/sync-projects.ts",
-    "test": "tsx --test tests/*.test.ts",
-    "preview": "npx serve out"
-  },
-  "dependencies": {
-    "gray-matter": "^4.0.3",
-    "next": "^16.2.10",
-    "next-mdx-remote": "^6.0.0",
-    "react": "^19.2.7",
-    "react-dom": "^19.2.7"
+    "dev": "npm run dev --workspace @iweioo/web",
+    "build": "npm run build --workspace @iweioo/web",
+    "preview": "npm run preview --workspace @iweioo/web",
+    "sync:projects": "npm run sync:projects --workspace @iweioo/web",
+    "generate:sdk": "npm run generate --workspace @iweioo/sdk",
+    "lint": "npm run lint --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test:contracts && npm run test --workspaces --if-present",
+    "test:contracts": "tsx --test tests/contract/*.test.ts"
   },
   "devDependencies": {
-    "@eslint/eslintrc": "^3.3.3",
-    "@types/node": "^26.1.0",
-    "@types/react": "^19.2.17",
-    "@types/react-dom": "^19.2.3",
-    "eslint": "^9.39.1",
-    "eslint-config-next": "^16.2.10",
-    "tsx": "^4.21.0",
-    "typescript": "^6.0.3"
+    "tsx": "^4.21.0"
   },
   "overrides": {
     "postcss": "8.5.16"

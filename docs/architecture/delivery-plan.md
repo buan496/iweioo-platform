@@ -12,9 +12,13 @@ apps/
   web/                 Next.js portal, account BFF, blog
   api/                 FastAPI platform modular monolith
   worker/              Outbox, lifecycle, notification jobs
+packages/
+  ui/                  Shared UI incubation package
+  sdk/                 Generated contract types and integration helpers
 contracts/
   openapi/             Platform HTTP contracts
   events/              Integration event schemas and examples
+  applications/        Product onboarding manifests
 deploy/
   compose/             Single-server and staging deployment
   migrations/          Deployment coordination, not application SQL
@@ -24,10 +28,10 @@ tests/
   contract/            Cross-runtime contract checks
 ```
 
-The current Next.js blog remains at the repository root in `v0.1.0`. Moving it
-to `apps/web` is a dedicated mechanical PR after workspace tooling and rollback
-instructions are ready. The architecture PR does not mix that move with design
-or behavior changes.
+The `v0.1.0` Next.js blog baseline is preserved inside `apps/web` and expanded
+into the platform portal. Root commands remain stable. Shared packages incubate
+inside the workspace until their public contracts are ready for the approved
+standalone repositories.
 
 Separate repositories remain or will be created for:
 
