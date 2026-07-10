@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "node scripts/run-typescript-7.mjs --noEmit",
     "lint": "eslint . --max-warnings=0",
     "sync:projects": "tsx scripts/sync-projects.ts",
     "test": "tsx --test tests/*.test.ts",
@@ -29,6 +29,7 @@
     "eslint": "^9.39.1",
     "eslint-config-next": "^16.2.10",
     "tsx": "^4.23.0",
-    "typescript": "^6.0.3"
+    "typescript": "npm:@typescript/typescript6@^6.0.2",
+    "typescript-7": "npm:typescript@^7.0.2"
   }
 }
