@@ -1,43 +1,41 @@
-# Legacy static deployment notes
+# Portal deployment notes
 
-This file describes the `v0.1.0` static blog baseline. It is not the production
-deployment plan for the iweioo platform. See the
-[platform system architecture](architecture/system-architecture.md) and
+The portal now uses the Next.js Node runtime because its OIDC BFF must execute
+server-side. The former `v0.1.0` static upload procedure is retired; there is no
+current `apps/web/out/` deployment artifact.
+
+This is still not the production deployment plan for the iweioo platform. See
+the [platform system architecture](architecture/system-architecture.md) and
 [delivery plan](architecture/delivery-plan.md) for the accepted mainland-China
-deployment direction.
+direction.
 
-## Local Static Build
+## Local production-mode build
+
+Configure the ignored portal environment as described in the
+[local identity runbook](../deploy/keycloak/README.md), then run:
 
 ```bash
+npm ci
 npm run build
 npm run preview
 ```
 
-The deployable output is `apps/web/out/`.
+The build is written under `apps/web/.next/`. Public content routes are
+prerendered, while authentication route handlers require the Node process and
+Redis at runtime.
 
-## Static preview VPS option
+## Production gates
 
-For a temporary static preview on an authorized VPS:
+A production deployment must provide HTTPS origins, a confidential Keycloak
+client secret, private Redis over TLS or a strictly loopback-only connection,
+reverse-proxy header validation, and persistent process supervision.
+`APP_ORIGIN` and the Keycloak callback and post-logout URI must match exactly.
+The local Compose profile, `start-dev`,
+Mailpit, loopback ports, bootstrap administrator, and localhost client routes
+must never be reused in staging or production.
 
-1. Build locally or in CI with `npm run build`.
-2. Upload the contents of `apps/web/out/` to the server, for example `/var/www/iweioo.com`.
-3. Serve the folder with Nginx or Caddy.
-4. Configure TLS only after the intended DNS and filing requirements are met.
-
-Example Nginx server block:
-
-```nginx
-server {
-    listen 80;
-    server_name iweioo.com www.iweioo.com;
-    root /var/www/iweioo.com;
-    index index.html;
-
-    location / {
-        try_files $uri $uri/ /404.html;
-    }
-}
-```
+The server image, reverse proxy, secret delivery, health/readiness endpoint,
+backup scope, rollback, and staging evidence remain future delivery slices.
 
 ## Email Routing
 

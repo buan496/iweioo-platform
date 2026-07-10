@@ -1,16 +1,19 @@
 # Compose profiles
 
 `identity.compose.yml` is the Stage 2 local identity profile. It contains
-Keycloak, its dedicated PostgreSQL database, and Mailpit for intercepted test
-email. It is not the single-server production profile from ADR 0005.
+Keycloak, its dedicated PostgreSQL database, Mailpit for intercepted test
+email, and an ephemeral Redis instance for portal BFF sessions. It is not the
+single-server production profile from ADR 0005.
 
 Local safeguards:
 
-- Keycloak and Mailpit UI ports bind to `127.0.0.1` only;
+- Keycloak, Mailpit UI, and Redis ports bind to `127.0.0.1` only;
 - PostgreSQL and SMTP have no host port;
 - PostgreSQL joins only the internal network;
-- Keycloak and Mailpit also join a local edge network so loopback port
+- Keycloak, Mailpit, and Redis join a local edge network so loopback port
   publishing works on Docker Desktop and GitHub-hosted runners;
+- Redis requires a unique password, uses a tmpfs with persistence disabled,
+  and caps evictable TTL data at 192 MiB inside a 256 MiB container limit;
 - images use explicit patch versions;
 - passwords are required from an ignored local env file;
 - the PostgreSQL 18 volume uses `/var/lib/postgresql`, matching the official

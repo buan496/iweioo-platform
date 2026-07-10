@@ -57,7 +57,8 @@ represented by unsafe in-memory substitutes.
 
 The Web move is mechanical: the former root application now lives under
 `apps/web`, and root npm scripts delegate to that workspace. No content URL is
-changed. Static output moves from `out/` to `apps/web/out/`.
+changed. The Next.js Node build is written under `apps/web/.next/`; public
+content routes remain prerendered while OIDC BFF routes execute on demand.
 
 Before merge, rollback is deleting the feature branch. After merge, a rollback
 reverts the workspace PR as one unit; do not manually copy generated or build

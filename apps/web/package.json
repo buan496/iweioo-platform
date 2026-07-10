@@ -6,11 +6,12 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "start": "next start",
     "typecheck": "node scripts/run-typescript-7.mjs --noEmit",
     "lint": "eslint . --max-warnings=0",
     "sync:projects": "tsx scripts/sync-projects.ts",
     "test": "tsx --test tests/*.test.ts",
-    "preview": "npx serve out"
+    "preview": "next start"
   },
   "dependencies": {
     "@iweioo/sdk": "0.1.0",
@@ -18,8 +19,11 @@
     "gray-matter": "^4.0.3",
     "next": "^16.2.10",
     "next-mdx-remote": "^6.0.0",
+    "openid-client": "^6.8.4",
     "react": "^19.2.7",
-    "react-dom": "^19.2.7"
+    "react-dom": "^19.2.7",
+    "redis": "^6.1.0",
+    "server-only": "^0.0.1"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.3",
