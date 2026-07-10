@@ -51,30 +51,35 @@ Invoke-RestMethod `
 Open the Keycloak administration console at `http://localhost:8080/admin/` and
 Mailpit at `http://localhost:8025/`.
 
-## Connect the portal BFF
+## Connect the portal and account BFFs
 
-In the administration console, open **iweioo → Clients → iweioo-portal →
-Credentials** and copy the generated client secret. Never paste it into a
-tracked file.
+In the administration console, open the `iweioo-portal` and `iweioo-account`
+clients and copy each generated credential from its **Credentials** tab. Never
+paste either secret into a tracked file.
 
-Create the ignored portal environment file:
+Create the ignored application environment files:
 
 ```powershell
 Copy-Item apps/web/.env.example apps/web/.env.local
+Copy-Item apps/account/.env.example apps/account/.env.local
 ```
 
-Set `OIDC_CLIENT_SECRET` to the generated client secret and set
-`BFF_REDIS_URL` to the local Redis connection using the same URL-safe password
-from `IDENTITY_REDIS_PASSWORD`:
+Set each file's `OIDC_CLIENT_SECRET` to its own generated client secret. Set
+`BFF_REDIS_URL` in both files to the local Redis connection using the same
+URL-safe password from `IDENTITY_REDIS_PASSWORD`:
 
 ```dotenv
 BFF_REDIS_URL=redis://:<local-redis-password>@127.0.0.1:6379/0
 ```
 
-Run `npm run dev`, open `http://localhost:3000/zh/`, and use the portal's
-Register or Sign in control. Verification and recovery messages remain inside
-Mailpit. The portal uses `prompt=create` for registration and the exact
-`http://localhost:3000/auth/callback` redirect URI.
+Run `npm run dev` for the portal and `npm run dev:account` in a second terminal.
+Open `http://localhost:3000/zh/`, then use Register or Sign in. Verification and
+recovery messages remain inside Mailpit. After authentication, opening
+`http://localhost:3001/auth/login?locale=zh&return_to=%2Fzh%2F` reuses the
+Keycloak SSO session and creates a separate account BFF session without asking
+for credentials again. Registration uses `prompt=create`; callbacks remain the
+exact `http://localhost:3000/auth/callback` and
+`http://localhost:3001/auth/callback` URIs.
 
 ## Imported contract
 
@@ -89,11 +94,13 @@ Mailpit. The portal uses `prompt=create` for registration and the exact
 - Mailpit-only SMTP with no authentication or external delivery.
 
 Client credentials are generated and stored by local Keycloak, never in the
-realm JSON. The portal reads its credential only from the ignored runtime
-environment.
+realm JSON. Each application reads only its own credential from its ignored
+runtime environment.
 
-The portal BFF stores one-time PKCE transactions and OIDC tokens in Redis. The
-browser receives only host-only opaque `HttpOnly`, `SameSite=Lax` cookies.
+The shared BFF package stores one-time PKCE transactions and OIDC tokens in
+app-scoped Redis namespaces. The browser receives only host-only opaque
+`HttpOnly`, `SameSite=Lax` cookies. Local portal and account cookie names are
+also app-scoped because localhost ports do not isolate browser cookies.
 Production HTTPS changes their names to the `__Host-` form and enables the
 `Secure` attribute. Logout is a same-origin, CSRF-checked POST that deletes the
 local record, attempts refresh-token revocation, and performs RP-initiated

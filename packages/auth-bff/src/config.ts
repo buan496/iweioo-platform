@@ -1,4 +1,5 @@
 export type AuthConfig = {
+  appId: string;
   appOrigin: string;
   issuer: URL;
   clientId: string;
@@ -22,6 +23,20 @@ function required(environment: NodeJS.ProcessEnv, name: string): string {
     throw new Error(`Missing required authentication setting: ${name}`);
   }
   return value;
+}
+
+function parseAppId(raw: string): string {
+  if (!/^[a-z][a-z0-9-]{1,31}$/.test(raw)) {
+    throw new Error("AUTH_APP_ID must be a lowercase application identifier");
+  }
+  return raw;
+}
+
+function parseClientId(raw: string): string {
+  if (!/^[A-Za-z0-9._-]{2,128}$/.test(raw)) {
+    throw new Error("OIDC_CLIENT_ID contains unsupported characters");
+  }
+  return raw;
 }
 
 function parseBoundedSeconds(
@@ -87,28 +102,30 @@ function parseRedisUrl(raw: string, production: boolean): string {
 }
 
 export function loadAuthConfig(environment: NodeJS.ProcessEnv = process.env): AuthConfig {
+  const appId = parseAppId(required(environment, "AUTH_APP_ID"));
   const app = parseOrigin(required(environment, "APP_ORIGIN"));
   const issuer = parseIssuer(required(environment, "OIDC_ISSUER"));
   const secureCookies = app.protocol === "https:";
   const production = environment.NODE_ENV === "production";
 
   return {
+    appId,
     appOrigin: app.origin,
     issuer,
-    clientId: required(environment, "OIDC_CLIENT_ID"),
+    clientId: parseClientId(required(environment, "OIDC_CLIENT_ID")),
     clientSecret: required(environment, "OIDC_CLIENT_SECRET"),
     callbackUrl: new URL("/auth/callback", app).toString(),
     postLogoutRedirectUrl: new URL("/", app).toString(),
     redisUrl: parseRedisUrl(required(environment, "BFF_REDIS_URL"), production),
     secureCookies,
-    sessionCookieName: secureCookies ? "__Host-iweioo_session" : "iweioo_session",
-    transactionCookieName: secureCookies ? "__Host-iweioo_oidc_tx" : "iweioo_oidc_tx",
+    sessionCookieName: secureCookies ? "__Host-iweioo_session" : `iweioo_${appId}_session`,
+    transactionCookieName: secureCookies ? "__Host-iweioo_oidc_tx" : `iweioo_${appId}_oidc_tx`,
     sessionTtlSeconds: parseBoundedSeconds(
       environment,
       "AUTH_SESSION_TTL_SECONDS",
       DEFAULT_SESSION_TTL_SECONDS,
       300,
-      DEFAULT_SESSION_TTL_SECONDS
+      10 * 60 * 60
     ),
     transactionTtlSeconds: parseBoundedSeconds(
       environment,

@@ -10,14 +10,14 @@ export type OidcTransaction = {
   createdAt: string;
 };
 
-export type PortalUser = {
+export type AuthenticatedUser = {
   platformUserId: string;
   email: string;
   displayName: string;
 };
 
-export type PortalSession = {
-  user: PortalUser;
+export type BffSession = {
+  user: AuthenticatedUser;
   accessToken: string;
   refreshToken: string;
   idToken: string;
@@ -26,6 +26,15 @@ export type PortalSession = {
   createdAt: string;
   expiresAt: string;
 };
+
+export type PublicSession =
+  | { authenticated: false }
+  | {
+      authenticated: true;
+      user: AuthenticatedUser;
+      csrfToken: string;
+      expiresAt: string;
+    };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -46,7 +55,7 @@ export function isOidcTransaction(value: unknown): value is OidcTransaction {
   );
 }
 
-export function isPortalSession(value: unknown): value is PortalSession {
+export function isBffSession(value: unknown): value is BffSession {
   if (!isRecord(value) || !isRecord(value.user)) {
     return false;
   }
@@ -64,7 +73,7 @@ export function isPortalSession(value: unknown): value is PortalSession {
   );
 }
 
-export function verifiedUserFromClaims(claims: Record<string, unknown>): PortalUser {
+export function verifiedUserFromClaims(claims: Record<string, unknown>): AuthenticatedUser {
   if (typeof claims.sub !== "string" || !claims.sub) {
     throw new Error("OIDC ID token is missing a subject");
   }
@@ -85,4 +94,18 @@ export function verifiedUserFromClaims(claims: Record<string, unknown>): PortalU
     email: claims.email,
     displayName
   };
+}
+
+export function isPublicSession(value: unknown): value is PublicSession {
+  if (!isRecord(value) || typeof value.authenticated !== "boolean") {
+    return false;
+  }
+  if (!value.authenticated) {
+    return true;
+  }
+  return (
+    isRecord(value.user) &&
+    hasStrings(value.user, ["platformUserId", "email", "displayName"]) &&
+    hasStrings(value, ["csrfToken", "expiresAt"])
+  );
 }

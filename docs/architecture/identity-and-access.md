@@ -117,15 +117,28 @@ Code plus PKCE `S256`, use one exact callback URI, disable implicit and direct
 password grants, and receive an audience restricted to their client ID. No
 client secret or privileged user is committed.
 
-The portal implements the first application-side integration at `/auth/login`,
-`/auth/register`, `/auth/callback`, `/api/auth/session`, and POST-only
-`/auth/logout`. OIDC transaction records are one-time and expire after ten
-minutes. Access, refresh, and ID tokens stay in Redis; the browser receives a
-random host-only session handle. Portal sessions default to the 30-minute realm
-idle window and are further bounded by the refresh-token lifetime. The session
-API returns an explicit safe DTO,
-and logout requires both an exact same-origin request and a session-bound CSRF
-token before local deletion, token revocation, and RP-initiated logout.
+The portal and account center use the same server-only `@iweioo/auth-bff`
+implementation at `/auth/login`, `/auth/register`, `/auth/callback`,
+`/api/auth/session`, and POST-only `/auth/logout`. They remain separate clients
+and processes. OIDC transaction records are one-time and expire after ten
+minutes. Access, refresh, and ID tokens stay in app-scoped Redis namespaces;
+each browser host receives only its own random opaque session handle. Sessions
+default to the 30-minute realm idle window and are further bounded by the
+refresh-token lifetime. The session API returns an explicit token-free DTO, and
+logout requires both an exact same-origin request and a session-bound CSRF token
+before local deletion, token revocation, and RP-initiated logout.
+
+Local development uses `iweioo_portal_*` and `iweioo_account_*` cookie names
+because cookies are scoped by host, not port. Production uses host-only
+`__Host-iweioo_*` cookies independently on each HTTPS subdomain; no parent-domain
+cookie is introduced. A local end-to-end smoke confirmed that authenticating
+once at the portal let the account client reuse the Keycloak SSO session while
+creating a separate BFF session for the same verified `sub`.
+
+The account center exposes verified identity, current-session metadata, and
+truthful readiness states for profile and optional consent. Durable profile and
+consent writes remain owned by the Platform API/PostgreSQL slice and are not
+emulated with browser or process memory.
 
 This profile is evidence for local contract development only. `start-dev`,
 Mailpit, loopback Redis publishing, localhost redirect URIs, and bootstrap

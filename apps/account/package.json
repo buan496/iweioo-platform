@@ -1,30 +1,25 @@
 {
-  "name": "@iweioo/web",
-  "version": "0.2.0",
+  "name": "@iweioo/account",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -p 3001",
     "build": "next build",
-    "start": "next start",
-    "typecheck": "node ../../scripts/run-typescript-7.mjs --noEmit",
+    "start": "next start -p 3001",
+    "preview": "next start -p 3001",
     "lint": "eslint . --max-warnings=0",
-    "sync:projects": "tsx scripts/sync-projects.ts",
-    "test": "tsx --test tests/*.test.ts",
-    "preview": "next start"
+    "typecheck": "node ../../scripts/run-typescript-7.mjs --noEmit",
+    "test": "tsx --test tests/*.test.ts"
   },
   "dependencies": {
     "@iweioo/auth-bff": "0.1.0",
-    "@iweioo/sdk": "0.1.0",
     "@iweioo/ui": "0.1.0",
-    "gray-matter": "^4.0.3",
     "next": "^16.2.10",
-    "next-mdx-remote": "^6.0.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7"
   },
   "devDependencies": {
-    "@eslint/eslintrc": "^3.3.3",
     "@types/node": "^26.1.1",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",

@@ -4,14 +4,18 @@
   "private": true,
   "type": "module",
   "workspaces": [
+    "apps/account",
     "apps/web",
+    "packages/auth-bff",
     "packages/sdk",
     "packages/ui"
   ],
   "scripts": {
     "dev": "npm run dev --workspace @iweioo/web",
-    "build": "npm run build --workspace @iweioo/web",
+    "dev:account": "npm run dev --workspace @iweioo/account",
+    "build": "npm run build --workspace @iweioo/web && npm run build --workspace @iweioo/account",
     "preview": "npm run preview --workspace @iweioo/web",
+    "preview:account": "npm run preview --workspace @iweioo/account",
     "sync:projects": "npm run sync:projects --workspace @iweioo/web",
     "generate:sdk": "npm run generate --workspace @iweioo/sdk",
     "identity:validate": "docker compose --file deploy/compose/identity.compose.yml config --no-interpolate",

@@ -17,8 +17,10 @@ async function readManifest(path: string): Promise<PackageManifest> {
 }
 
 test("TypeScript compiler boundaries remain workspace-owned", async () => {
-  const [web, ui, sdk, lock] = await Promise.all([
+  const [account, web, authBff, ui, sdk, lock] = await Promise.all([
+    readManifest("apps/account/package.json"),
     readManifest("apps/web/package.json"),
+    readManifest("packages/auth-bff/package.json"),
     readManifest("packages/ui/package.json"),
     readManifest("packages/sdk/package.json"),
     readFile("package-lock.json", "utf8").then(
@@ -36,8 +38,21 @@ test("TypeScript compiler boundaries remain workspace-owned", async () => {
   );
   assert.equal(
     web.scripts?.typecheck,
-    "node scripts/run-typescript-7.mjs --noEmit",
+    "node ../../scripts/run-typescript-7.mjs --noEmit",
   );
+  assert.match(
+    account.devDependencies?.typescript ?? "",
+    /^npm:@typescript\/typescript6@\^6\./,
+  );
+  assert.match(
+    account.devDependencies?.["typescript-7"] ?? "",
+    /^npm:typescript@\^7\./,
+  );
+  assert.equal(
+    account.scripts?.typecheck,
+    "node ../../scripts/run-typescript-7.mjs --noEmit",
+  );
+  assert.match(authBff.devDependencies?.typescript ?? "", /^\^7\./);
   assert.match(ui.devDependencies?.typescript ?? "", /^\^7\./);
   assert.match(sdk.devDependencies?.typescript ?? "", /^5\.[0-9]+\.[0-9]+$/);
 
@@ -55,13 +70,17 @@ test("TypeScript compiler boundaries remain workspace-owned", async () => {
     /^5\./,
   );
   assert.match(
+    lock.packages["packages/auth-bff/node_modules/typescript"]?.version ?? "",
+    /^7\./,
+  );
+  assert.match(
     lock.packages["packages/ui/node_modules/typescript"]?.version ?? "",
     /^7\./,
   );
 
   const compiler = spawnSync(
     process.execPath,
-    ["apps/web/scripts/run-typescript-7.mjs", "--version"],
+    ["scripts/run-typescript-7.mjs", "--version"],
     { encoding: "utf8" },
   );
   assert.equal(compiler.status, 0, compiler.stderr);

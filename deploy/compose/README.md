@@ -2,7 +2,7 @@
 
 `identity.compose.yml` is the Stage 2 local identity profile. It contains
 Keycloak, its dedicated PostgreSQL database, Mailpit for intercepted test
-email, and an ephemeral Redis instance for portal BFF sessions. It is not the
+email, and an ephemeral Redis instance for app-isolated BFF sessions. It is not the
 single-server production profile from ADR 0005.
 
 Local safeguards:

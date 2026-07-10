@@ -1,17 +1,14 @@
 import "server-only";
 
 import { createClient, type RedisClientType } from "redis";
-import type { AuthConfig } from "@/lib/auth/config";
+import type { AuthConfig } from "./config";
 import {
   isOidcTransaction,
-  isPortalSession,
+  isBffSession,
+  type BffSession,
   type OidcTransaction,
-  type PortalSession
-} from "@/lib/auth/model";
-import { hashHandle } from "@/lib/auth/security";
-
-const TRANSACTION_PREFIX = "iweioo:portal:oidc-tx:";
-const SESSION_PREFIX = "iweioo:portal:session:";
+} from "./model";
+import { hashHandle } from "./security";
 
 declare global {
   var iweiooRedisClients: Map<string, Promise<RedisClientType>> | undefined;
@@ -46,12 +43,12 @@ async function redis(config: AuthConfig): Promise<RedisClientType> {
   return pending;
 }
 
-function transactionKey(handle: string): string {
-  return `${TRANSACTION_PREFIX}${hashHandle(handle)}`;
+function transactionKey(config: AuthConfig, handle: string): string {
+  return `iweioo:${config.appId}:oidc-tx:${hashHandle(handle)}`;
 }
 
-function sessionKey(handle: string): string {
-  return `${SESSION_PREFIX}${hashHandle(handle)}`;
+function sessionKey(config: AuthConfig, handle: string): string {
+  return `iweioo:${config.appId}:session:${hashHandle(handle)}`;
 }
 
 async function createRecord(
@@ -76,7 +73,7 @@ export async function createOidcTransaction(
 ): Promise<void> {
   await createRecord(
     config,
-    transactionKey(handle),
+    transactionKey(config, handle),
     transaction,
     config.transactionTtlSeconds
   );
@@ -86,7 +83,7 @@ export async function takeOidcTransaction(
   config: AuthConfig,
   handle: string
 ): Promise<OidcTransaction | null> {
-  const raw = await (await redis(config)).getDel(transactionKey(handle));
+  const raw = await (await redis(config)).getDel(transactionKey(config, handle));
   if (!raw) {
     return null;
   }
@@ -98,31 +95,31 @@ export async function takeOidcTransaction(
   }
 }
 
-export async function createPortalSession(
+export async function createBffSession(
   config: AuthConfig,
   handle: string,
-  session: PortalSession,
+  session: BffSession,
   ttlSeconds = config.sessionTtlSeconds
 ): Promise<void> {
-  await createRecord(config, sessionKey(handle), session, ttlSeconds);
+  await createRecord(config, sessionKey(config, handle), session, ttlSeconds);
 }
 
-export async function getPortalSession(
+export async function getBffSession(
   config: AuthConfig,
   handle: string
-): Promise<PortalSession | null> {
-  const raw = await (await redis(config)).get(sessionKey(handle));
+): Promise<BffSession | null> {
+  const raw = await (await redis(config)).get(sessionKey(config, handle));
   if (!raw) {
     return null;
   }
   try {
     const value: unknown = JSON.parse(raw);
-    return isPortalSession(value) ? value : null;
+    return isBffSession(value) ? value : null;
   } catch {
     return null;
   }
 }
 
-export async function deletePortalSession(config: AuthConfig, handle: string): Promise<void> {
-  await (await redis(config)).del(sessionKey(handle));
+export async function deleteBffSession(config: AuthConfig, handle: string): Promise<void> {
+  await (await redis(config)).del(sessionKey(config, handle));
 }

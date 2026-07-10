@@ -188,7 +188,13 @@ main {
   max-width: 150px;
   overflow: hidden;
   color: rgba(245, 245, 247, 0.82);
+  text-decoration: none;
   text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.auth-user:hover {
+  color: #ffffff;
 }
 
 .auth-loading {

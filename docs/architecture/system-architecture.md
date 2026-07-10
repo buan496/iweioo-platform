@@ -56,7 +56,8 @@ flowchart TB
 | Component | Responsibility | Initial form |
 | --- | --- | --- |
 | Edge proxy | TLS, host routing, request limits, security headers | One container |
-| Platform web | Portal, blog, account BFF, public legal pages | Next.js |
+| Platform portal | Product catalog, blog, open source, about, and legal entry points | Next.js process at `iweioo.com` |
+| Account center | Verified identity, profile, consent, and session surfaces | Next.js process at `account.iweioo.com` |
 | Identity provider | Registration, email verification, passwords, SSO, MFA | Keycloak |
 | Platform API | Profiles, consent, app registry, credits, usage, growth summaries | FastAPI modular monolith |
 | Platform worker | Outbox relay, email work, export/deletion workflows | Python worker |
