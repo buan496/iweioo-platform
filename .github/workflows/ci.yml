@@ -58,6 +58,9 @@ jobs:
       - name: Install Python services
         run: python -m pip install -e "apps/api[dev]" -e "apps/worker"
 
+      - name: Validate identity configuration
+        run: npm run identity:validate
+
       - name: Lint
         run: npm run lint
 
@@ -85,3 +88,37 @@ jobs:
         env:
           NEXT_TELEMETRY_DISABLED: "1"
         run: npm run build
+
+  identity-smoke:
+    name: Identity Smoke
+    runs-on: ubuntu-latest
+    env:
+      IDENTITY_COMPOSE_FILE: deploy/compose/identity.compose.yml
+      KEYCLOAK_DB_PASSWORD: not-a-secret
+      KC_BOOTSTRAP_ADMIN_PASSWORD: not-a-secret
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Start local identity profile
+        run: docker compose --file "$IDENTITY_COMPOSE_FILE" up --detach --quiet-pull
+
+      - name: Verify realm discovery and test mail
+        run: |
+          curl --fail --silent --show-error \
+            --retry 45 --retry-connrefused --retry-delay 2 \
+            http://127.0.0.1:8080/realms/iweioo/.well-known/openid-configuration \
+            --output discovery.json
+          jq --exit-status \
+            '.issuer == "http://localhost:8080/realms/iweioo" and (.code_challenge_methods_supported | index("S256") != null)' \
+            discovery.json
+          curl --fail --silent --show-error http://127.0.0.1:8025/api/v1/info > /dev/null
+
+      - name: Show identity logs on failure
+        if: failure()
+        run: docker compose --file "$IDENTITY_COMPOSE_FILE" logs --no-color
+
+      - name: Stop local identity profile
+        if: always()
+        run: docker compose --file "$IDENTITY_COMPOSE_FILE" down --volumes --remove-orphans

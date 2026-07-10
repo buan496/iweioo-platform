@@ -104,6 +104,22 @@ explicitly grants that access.
 - login and privilege-change audit events;
 - no production development codes or default credentials.
 
+## Local implementation baseline
+
+The Stage 2 development profile lives under `deploy/keycloak` and
+`deploy/compose/identity.compose.yml`. It imports a secret-free realm into a
+dedicated local PostgreSQL database and routes email to Mailpit. All published
+ports bind to loopback; database and SMTP ports remain private.
+
+The imported Web clients are confidential BFF clients, require Authorization
+Code plus PKCE `S256`, use one exact callback URI, disable implicit and direct
+password grants, and receive an audience restricted to their client ID. No
+client secret or privileged user is committed.
+
+This profile is evidence for local contract development only. `start-dev`,
+Mailpit, localhost redirect URIs, and bootstrap administration are prohibited
+in staging and production. See the [local identity runbook](../../deploy/keycloak/README.md).
+
 ## Standards references
 
 - [OpenID Connect Core 1.0](https://openid.net/specs/openid-connect-core-1_0-18.html)
