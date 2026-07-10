@@ -1,0 +1,21 @@
+{
+  "specversion": "1.0",
+  "id": "2c747e36-a41b-4af1-94f7-d22a4d455405",
+  "source": "/applications/interview",
+  "type": "iweioo.application.activity.recorded.v1",
+  "subject": "users/80b5154b-26b5-48d3-9052-ac1a8971332f",
+  "time": "2026-07-10T03:00:00Z",
+  "datacontenttype": "application/json",
+  "traceparent": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
+  "data_classification": "personal",
+  "data": {
+    "app_id": "interview",
+    "activity_type": "practice_session_completed",
+    "resource_id": "07f77e67-6699-4b6f-8858-0df992ae09e2",
+    "occurred_at": "2026-07-10T02:59:58Z",
+    "summary": {
+      "question_count": 5,
+      "duration_seconds": 1260
+    }
+  }
+}
