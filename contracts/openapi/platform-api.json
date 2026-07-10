@@ -1,0 +1,841 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "iweioo Platform API",
+    "version": "0.1.0",
+    "summary": "Identity projection, account, consent, credits, usage, growth, and lifecycle contract.",
+    "license": {
+      "name": "AGPL-3.0-only",
+      "identifier": "AGPL-3.0-only"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://iweioo.com/api/platform/v1",
+      "description": "Public BFF-facing API"
+    },
+    {
+      "url": "http://platform-api:8000/v1",
+      "description": "Private service network"
+    }
+  ],
+  "tags": [
+    { "name": "Health" },
+    { "name": "Account" },
+    { "name": "Consent" },
+    { "name": "Credits" },
+    { "name": "Usage" },
+    { "name": "Growth" },
+    { "name": "Privacy" },
+    { "name": "Internal" }
+  ],
+  "paths": {
+    "/health/live": {
+      "get": {
+        "tags": ["Health"],
+        "operationId": "getLiveness",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Process is alive.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Health" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health/ready": {
+      "get": {
+        "tags": ["Health"],
+        "operationId": "getReadiness",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Required dependencies are ready.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Health" }
+              }
+            }
+          },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/users/me": {
+      "get": {
+        "tags": ["Account"],
+        "operationId": "getCurrentUser",
+        "security": [{ "userOidc": ["openid", "profile", "email"] }],
+        "responses": {
+          "200": {
+            "description": "Current platform user.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/CurrentUser" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/users/me/profile": {
+      "patch": {
+        "tags": ["Account"],
+        "operationId": "updateCurrentUserProfile",
+        "security": [{ "userOidc": ["openid", "profile"] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ProfilePatch" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated profile.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/UserProfile" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/users/me/applications": {
+      "get": {
+        "tags": ["Account"],
+        "operationId": "listCurrentUserApplications",
+        "security": [{ "userOidc": ["openid", "profile"] }],
+        "responses": {
+          "200": {
+            "description": "Applications visible to the current user.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/ApplicationSummary" }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/users/me/activities": {
+      "get": {
+        "tags": ["Account"],
+        "operationId": "listCurrentUserActivities",
+        "security": [{ "userOidc": ["openid", "profile"] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/Cursor" },
+          { "$ref": "#/components/parameters/PageLimit" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sanitized cross-product activity summaries.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ActivityPage" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/users/me/consents": {
+      "get": {
+        "tags": ["Consent"],
+        "operationId": "listCurrentUserConsents",
+        "security": [{ "userOidc": ["openid", "profile"] }],
+        "responses": {
+          "200": {
+            "description": "Current consent state by purpose.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/Consent" }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/users/me/consents/{purpose}": {
+      "put": {
+        "tags": ["Consent"],
+        "operationId": "setCurrentUserConsent",
+        "security": [{ "userOidc": ["openid", "profile"] }],
+        "parameters": [
+          {
+            "name": "purpose",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_.-]{2,63}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ConsentUpdate" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated consent evidence.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Consent" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/users/me/credit-account": {
+      "get": {
+        "tags": ["Credits"],
+        "operationId": "getCurrentUserCreditAccount",
+        "security": [{ "userOidc": ["openid", "profile"] }],
+        "responses": {
+          "200": {
+            "description": "Virtual Beta credit account.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/CreditAccount" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/users/me/usage": {
+      "get": {
+        "tags": ["Usage"],
+        "operationId": "listCurrentUserUsage",
+        "security": [{ "userOidc": ["openid", "profile"] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/Cursor" },
+          { "$ref": "#/components/parameters/PageLimit" },
+          {
+            "name": "app_id",
+            "in": "query",
+            "required": false,
+            "schema": { "$ref": "#/components/schemas/AppId" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Usage receipts visible to the current user.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/UsagePage" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/users/me/growth-profile": {
+      "get": {
+        "tags": ["Growth"],
+        "operationId": "getCurrentUserGrowthProfile",
+        "security": [{ "userOidc": ["openid", "profile"] }],
+        "responses": {
+          "200": {
+            "description": "User-controlled cross-product growth profile.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/GrowthProfile" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Problem" }
+        }
+      },
+      "patch": {
+        "tags": ["Growth"],
+        "operationId": "updateCurrentUserGrowthPreferences",
+        "security": [{ "userOidc": ["openid", "profile"] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/GrowthPreferencesPatch" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated growth profile.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/GrowthProfile" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/users/me/data-requests": {
+      "post": {
+        "tags": ["Privacy"],
+        "operationId": "createCurrentUserDataRequest",
+        "security": [{ "userOidc": ["openid", "profile"] }],
+        "parameters": [{ "$ref": "#/components/parameters/IdempotencyKey" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/DataRequestCreate" }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Request accepted for asynchronous processing.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DataRequest" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/users/me/data-requests/{request_id}": {
+      "get": {
+        "tags": ["Privacy"],
+        "operationId": "getCurrentUserDataRequest",
+        "security": [{ "userOidc": ["openid", "profile"] }],
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Data request status.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DataRequest" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/internal/usage/holds": {
+      "post": {
+        "tags": ["Internal"],
+        "operationId": "createUsageHold",
+        "x-iweioo-exposure": "private-service-network",
+        "security": [{ "serviceOAuth": ["usage:write"] }],
+        "parameters": [{ "$ref": "#/components/parameters/IdempotencyKey" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UsageHoldRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Credit hold created.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/UsageHold" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "402": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/internal/usage/holds/{hold_id}/settle": {
+      "post": {
+        "tags": ["Internal"],
+        "operationId": "settleUsageHold",
+        "x-iweioo-exposure": "private-service-network",
+        "security": [{ "serviceOAuth": ["usage:write"] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/HoldId" },
+          { "$ref": "#/components/parameters/IdempotencyKey" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UsageSettlementRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Usage settled exactly once.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/UsageRecord" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/internal/usage/holds/{hold_id}/release": {
+      "post": {
+        "tags": ["Internal"],
+        "operationId": "releaseUsageHold",
+        "x-iweioo-exposure": "private-service-network",
+        "security": [{ "serviceOAuth": ["usage:write"] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/HoldId" },
+          { "$ref": "#/components/parameters/IdempotencyKey" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UsageReleaseRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Hold released exactly once.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/UsageHold" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/internal/events": {
+      "post": {
+        "tags": ["Internal"],
+        "operationId": "ingestProductEvent",
+        "x-iweioo-exposure": "private-service-network",
+        "security": [{ "serviceOAuth": ["events:write"] }],
+        "parameters": [{ "$ref": "#/components/parameters/IdempotencyKey" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/EventEnvelope" }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Event accepted or previously accepted with the same ID.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/EventReceipt" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "userOidc": {
+        "type": "openIdConnect",
+        "openIdConnectUrl": "https://auth.iweioo.com/realms/iweioo/.well-known/openid-configuration"
+      },
+      "serviceOAuth": {
+        "type": "oauth2",
+        "flows": {
+          "clientCredentials": {
+            "tokenUrl": "https://auth.iweioo.com/realms/iweioo/protocol/openid-connect/token",
+            "scopes": {
+              "usage:write": "Create and finalize usage reservations.",
+              "events:write": "Submit registered product events."
+            }
+          }
+        }
+      }
+    },
+    "parameters": {
+      "Cursor": {
+        "name": "cursor",
+        "in": "query",
+        "required": false,
+        "schema": { "type": "string", "maxLength": 512 }
+      },
+      "PageLimit": {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "schema": { "type": "integer", "minimum": 1, "maximum": 100, "default": 20 }
+      },
+      "IdempotencyKey": {
+        "name": "Idempotency-Key",
+        "in": "header",
+        "required": true,
+        "schema": { "type": "string", "minLength": 16, "maxLength": 128 }
+      },
+      "HoldId": {
+        "name": "hold_id",
+        "in": "path",
+        "required": true,
+        "schema": { "type": "string", "format": "uuid" }
+      }
+    },
+    "responses": {
+      "Problem": {
+        "description": "Problem details response.",
+        "content": {
+          "application/problem+json": {
+            "schema": { "$ref": "#/components/schemas/Problem" }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "Health": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["status", "service", "version"],
+        "properties": {
+          "status": { "enum": ["ok", "degraded"] },
+          "service": { "type": "string" },
+          "version": { "type": "string" }
+        }
+      },
+      "AppId": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9-]{1,31}$"
+      },
+      "MicroAmount": {
+        "type": "string",
+        "pattern": "^-?[0-9]+$",
+        "description": "Signed integer micro-units serialized as a decimal string."
+      },
+      "UserProfile": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["display_name", "locale", "timezone"],
+        "properties": {
+          "display_name": { "type": "string", "minLength": 1, "maxLength": 80 },
+          "locale": { "enum": ["zh-CN", "en"] },
+          "timezone": { "type": "string", "maxLength": 64 },
+          "school": { "type": "string", "maxLength": 120 },
+          "major": { "type": "string", "maxLength": 120 },
+          "graduation_year": { "type": "integer", "minimum": 2000, "maximum": 2200 },
+          "career_goal": { "type": "string", "maxLength": 200 }
+        }
+      },
+      "ProfilePatch": {
+        "type": "object",
+        "additionalProperties": false,
+        "minProperties": 1,
+        "properties": {
+          "display_name": { "type": "string", "minLength": 1, "maxLength": 80 },
+          "locale": { "enum": ["zh-CN", "en"] },
+          "timezone": { "type": "string", "maxLength": 64 },
+          "school": { "type": ["string", "null"], "maxLength": 120 },
+          "major": { "type": ["string", "null"], "maxLength": 120 },
+          "graduation_year": { "type": ["integer", "null"], "minimum": 2000, "maximum": 2200 },
+          "career_goal": { "type": ["string", "null"], "maxLength": 200 }
+        }
+      },
+      "CurrentUser": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["user_id", "status", "email", "email_verified", "profile", "created_at"],
+        "properties": {
+          "user_id": { "type": "string", "format": "uuid" },
+          "status": { "enum": ["active", "restricted", "deletion_pending"] },
+          "email": { "type": "string", "format": "email" },
+          "email_verified": { "type": "boolean" },
+          "profile": { "$ref": "#/components/schemas/UserProfile" },
+          "created_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "ApplicationSummary": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["app_id", "name", "url", "status"],
+        "properties": {
+          "app_id": { "$ref": "#/components/schemas/AppId" },
+          "name": { "type": "string", "maxLength": 80 },
+          "url": { "type": "string", "format": "uri" },
+          "status": { "enum": ["available", "maintenance", "disabled"] },
+          "last_used_at": { "type": "string", "format": "date-time" },
+          "summary": { "type": "object", "additionalProperties": true }
+        }
+      },
+      "ActivitySummary": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["event_id", "app_id", "activity_type", "occurred_at"],
+        "properties": {
+          "event_id": { "type": "string", "format": "uuid" },
+          "app_id": { "$ref": "#/components/schemas/AppId" },
+          "activity_type": { "type": "string", "maxLength": 80 },
+          "resource_id": { "type": "string", "maxLength": 200 },
+          "occurred_at": { "type": "string", "format": "date-time" },
+          "summary": { "type": "object", "additionalProperties": true }
+        }
+      },
+      "ActivityPage": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/ActivitySummary" } },
+          "next_cursor": { "type": "string" }
+        }
+      },
+      "Consent": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["purpose", "status", "policy_version", "updated_at"],
+        "properties": {
+          "purpose": { "type": "string", "maxLength": 64 },
+          "status": { "enum": ["granted", "revoked"] },
+          "policy_version": { "type": "string", "maxLength": 40 },
+          "updated_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "ConsentUpdate": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["status", "policy_version"],
+        "properties": {
+          "status": { "enum": ["granted", "revoked"] },
+          "policy_version": { "type": "string", "minLength": 1, "maxLength": 40 }
+        }
+      },
+      "CreditAccount": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["asset_code", "balance_micros", "available_micros", "reserved_micros", "updated_at"],
+        "properties": {
+          "asset_code": { "const": "IWEIOO_CREDIT_MICRO" },
+          "balance_micros": { "$ref": "#/components/schemas/MicroAmount" },
+          "available_micros": { "$ref": "#/components/schemas/MicroAmount" },
+          "reserved_micros": { "$ref": "#/components/schemas/MicroAmount" },
+          "updated_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "UsageRecord": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["usage_id", "app_id", "operation", "pricing_version", "provider_cost_micros", "charge_micros", "status", "created_at"],
+        "properties": {
+          "usage_id": { "type": "string", "format": "uuid" },
+          "app_id": { "$ref": "#/components/schemas/AppId" },
+          "operation": { "type": "string", "maxLength": 80 },
+          "provider": { "type": "string", "maxLength": 80 },
+          "model": { "type": "string", "maxLength": 160 },
+          "model_route": { "type": "string", "maxLength": 160 },
+          "pricing_version": { "type": "string", "maxLength": 80 },
+          "input_units": { "type": "integer", "minimum": 0 },
+          "output_units": { "type": "integer", "minimum": 0 },
+          "provider_cost_micros": { "$ref": "#/components/schemas/MicroAmount" },
+          "charge_micros": { "$ref": "#/components/schemas/MicroAmount" },
+          "status": { "enum": ["settled", "released", "adjusted"] },
+          "created_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "UsagePage": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/UsageRecord" } },
+          "next_cursor": { "type": "string" }
+        }
+      },
+      "GrowthDimension": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["dimension", "level", "confidence", "observed_at", "sources"],
+        "properties": {
+          "dimension": { "type": "string", "maxLength": 80 },
+          "level": { "type": "number", "minimum": 0, "maximum": 100 },
+          "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+          "observed_at": { "type": "string", "format": "date-time" },
+          "sources": { "type": "array", "items": { "$ref": "#/components/schemas/AppId" }, "uniqueItems": true }
+        }
+      },
+      "GrowthProfile": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["sharing_enabled", "personalization_enabled", "taxonomy_version", "dimensions", "updated_at"],
+        "properties": {
+          "sharing_enabled": { "type": "boolean" },
+          "personalization_enabled": { "type": "boolean" },
+          "taxonomy_version": { "type": "string", "maxLength": 40 },
+          "dimensions": { "type": "array", "items": { "$ref": "#/components/schemas/GrowthDimension" } },
+          "updated_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "GrowthPreferencesPatch": {
+        "type": "object",
+        "additionalProperties": false,
+        "minProperties": 1,
+        "properties": {
+          "sharing_enabled": { "type": "boolean" },
+          "personalization_enabled": { "type": "boolean" }
+        }
+      },
+      "DataRequestCreate": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["request_type"],
+        "properties": {
+          "request_type": { "enum": ["export", "delete_account"] }
+        }
+      },
+      "DataRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["request_id", "request_type", "status", "created_at", "updated_at"],
+        "properties": {
+          "request_id": { "type": "string", "format": "uuid" },
+          "request_type": { "enum": ["export", "delete_account"] },
+          "status": { "enum": ["accepted", "running", "completed", "failed", "cancelled"] },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" },
+          "expires_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "UsageHoldRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["platform_user_id", "app_id", "operation", "estimated_charge_micros", "pricing_version", "client_reference"],
+        "properties": {
+          "platform_user_id": { "type": "string", "format": "uuid" },
+          "app_id": { "$ref": "#/components/schemas/AppId" },
+          "operation": { "type": "string", "minLength": 1, "maxLength": 80 },
+          "estimated_charge_micros": { "$ref": "#/components/schemas/MicroAmount" },
+          "pricing_version": { "type": "string", "minLength": 1, "maxLength": 80 },
+          "client_reference": { "type": "string", "minLength": 1, "maxLength": 160 }
+        }
+      },
+      "UsageHold": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["hold_id", "status", "reserved_micros", "expires_at"],
+        "properties": {
+          "hold_id": { "type": "string", "format": "uuid" },
+          "status": { "enum": ["active", "settled", "released", "expired"] },
+          "reserved_micros": { "$ref": "#/components/schemas/MicroAmount" },
+          "expires_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "UsageSettlementRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["provider_cost_micros", "charge_micros", "pricing_version", "model_route"],
+        "properties": {
+          "provider": { "type": "string", "maxLength": 80 },
+          "model": { "type": "string", "maxLength": 160 },
+          "model_route": { "type": "string", "minLength": 1, "maxLength": 160 },
+          "pricing_version": { "type": "string", "minLength": 1, "maxLength": 80 },
+          "input_units": { "type": "integer", "minimum": 0 },
+          "output_units": { "type": "integer", "minimum": 0 },
+          "provider_cost_micros": { "$ref": "#/components/schemas/MicroAmount" },
+          "charge_micros": { "$ref": "#/components/schemas/MicroAmount" }
+        }
+      },
+      "UsageReleaseRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["reason"],
+        "properties": {
+          "reason": { "type": "string", "minLength": 1, "maxLength": 160 }
+        }
+      },
+      "EventEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["specversion", "id", "source", "type", "subject", "time", "datacontenttype", "data_classification", "data"],
+        "properties": {
+          "specversion": { "const": "1.0" },
+          "id": { "type": "string", "format": "uuid" },
+          "source": { "type": "string", "format": "uri-reference" },
+          "type": { "type": "string", "pattern": "^iweioo\\.[a-z0-9_.-]+\\.v[1-9][0-9]*$" },
+          "subject": { "type": "string", "minLength": 1, "maxLength": 200 },
+          "time": { "type": "string", "format": "date-time" },
+          "datacontenttype": { "const": "application/json" },
+          "traceparent": { "type": "string" },
+          "data_classification": { "enum": ["public", "internal", "personal"] },
+          "data": { "type": "object" }
+        }
+      },
+      "EventReceipt": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["event_id", "status"],
+        "properties": {
+          "event_id": { "type": "string", "format": "uuid" },
+          "status": { "enum": ["accepted", "duplicate"] }
+        }
+      },
+      "Problem": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": ["type", "title", "status"],
+        "properties": {
+          "type": { "type": "string", "format": "uri-reference" },
+          "title": { "type": "string" },
+          "status": { "type": "integer", "minimum": 100, "maximum": 599 },
+          "detail": { "type": "string" },
+          "instance": { "type": "string", "format": "uri-reference" },
+          "code": { "type": "string", "pattern": "^[a-z][a-z0-9_.-]+$" },
+          "request_id": { "type": "string" }
+        }
+      }
+    }
+  }
+}

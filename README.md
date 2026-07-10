@@ -3,6 +3,10 @@
 Current `v0.1.0` baseline of the Next.js personal blog and bilingual portfolio for `iweioo.com`.
 This repository will evolve into the open-source iweioo application platform.
 
+The accepted platform architecture, identity model, data boundaries, delivery
+stages, and machine-readable integration contracts are documented in
+[`docs/architecture`](docs/architecture/README.md).
+
 ## Stack
 
 - Next.js App Router
@@ -72,11 +76,10 @@ Gitee is used as a public project data source only. This repo is not configured 
 
 Use `iweioo.com` as the canonical domain.
 
-Recommended first-stage DNS:
-
-- `A` record for `@` to the future Hong Kong VPS IPv4 address.
-- `AAAA` record for `@` if the VPS has IPv6.
-- `CNAME` record for `www` to `iweioo.com`.
+Production will use Tencent Cloud's mainland China region after the required
+server purchase and ICP filing. DNS and subdomain routing follow the
+[system architecture](docs/architecture/system-architecture.md); `www` should
+redirect to the canonical `iweioo.com` host.
 
 For `contact@iweioo.com`, use Cloudflare Email Routing or the domain provider's mail forwarding to forward incoming email to `jingw9992@gmail.com`.
 Only configure Gmail "Send mail as" after a verified SMTP sending path is available.

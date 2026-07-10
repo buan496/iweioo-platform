@@ -1,6 +1,10 @@
-# Deployment Notes
+# Legacy static deployment notes
 
-This project is designed for static hosting first.
+This file describes the `v0.1.0` static blog baseline. It is not the production
+deployment plan for the iweioo platform. See the
+[platform system architecture](architecture/system-architecture.md) and
+[delivery plan](architecture/delivery-plan.md) for the accepted mainland-China
+deployment direction.
 
 ## Local Static Build
 
@@ -11,14 +15,14 @@ npm run preview
 
 The deployable output is `out/`.
 
-## VPS Option
+## Static preview VPS option
 
-After buying the Hong Kong VPS:
+For a temporary static preview on an authorized VPS:
 
 1. Build locally or in CI with `npm run build`.
 2. Upload the contents of `out/` to the server, for example `/var/www/iweioo.com`.
 3. Serve the folder with Nginx or Caddy.
-4. Configure TLS after DNS points to the VPS.
+4. Configure TLS only after the intended DNS and filing requirements are met.
 
 Example Nginx server block:
 
