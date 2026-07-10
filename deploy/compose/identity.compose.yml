@@ -1,0 +1,78 @@
+name: iweioo-identity-local
+
+services:
+  identity-db:
+    image: postgres:18.4-alpine3.24
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: "${KEYCLOAK_DB_PASSWORD:?set KEYCLOAK_DB_PASSWORD in the local env file}"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U keycloak -d keycloak"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    volumes:
+      - identity-postgres:/var/lib/postgresql
+    networks:
+      - identity-internal
+    security_opt:
+      - no-new-privileges:true
+
+  identity-mail:
+    image: axllent/mailpit:v1.30.0
+    environment:
+      MP_SMTP_BIND_ADDR: 0.0.0.0:1025
+      MP_UI_BIND_ADDR: 0.0.0.0:8025
+      MP_MAX_MESSAGES: "200"
+      MP_MAX_MESSAGE_SIZE: 10485760
+    ports:
+      - "127.0.0.1:${MAILPIT_UI_PORT:-8025}:8025"
+    networks:
+      - identity-internal
+      - identity-edge
+    security_opt:
+      - no-new-privileges:true
+
+  identity:
+    image: quay.io/keycloak/keycloak:26.6.4
+    command:
+      - start-dev
+      - --import-realm
+      - --health-enabled=true
+      - --metrics-enabled=true
+    environment:
+      KC_DB: postgres
+      KC_DB_URL_HOST: identity-db
+      KC_DB_URL_DATABASE: keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: "${KEYCLOAK_DB_PASSWORD:?set KEYCLOAK_DB_PASSWORD in the local env file}"
+      KC_BOOTSTRAP_ADMIN_USERNAME: "${KC_BOOTSTRAP_ADMIN_USERNAME:-local-admin}"
+      KC_BOOTSTRAP_ADMIN_PASSWORD: "${KC_BOOTSTRAP_ADMIN_PASSWORD:?set KC_BOOTSTRAP_ADMIN_PASSWORD in the local env file}"
+      KC_HOSTNAME: "http://localhost:${KEYCLOAK_HTTP_PORT:-8080}"
+      KC_HTTP_ENABLED: "true"
+      JAVA_OPTS_KC_HEAP: -XX:MaxRAMPercentage=65 -XX:InitialRAMPercentage=30
+    depends_on:
+      identity-db:
+        condition: service_healthy
+      identity-mail:
+        condition: service_started
+    ports:
+      - "127.0.0.1:${KEYCLOAK_HTTP_PORT:-8080}:8080"
+    volumes:
+      - ../keycloak/realm:/opt/keycloak/data/import:ro
+    networks:
+      - identity-internal
+      - identity-edge
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 1g
+
+networks:
+  identity-internal:
+    internal: true
+  identity-edge:
+
+volumes:
+  identity-postgres:

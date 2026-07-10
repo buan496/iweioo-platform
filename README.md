@@ -55,10 +55,13 @@ iweioo-api
 
 平台 API 健康端点为 `http://127.0.0.1:8000/v1/health/live` 和 `/v1/health/ready`。Worker 可用 `iweioo-worker --healthcheck` 检查进程骨架。
 
+本地统一身份环境使用 Keycloak、独立 PostgreSQL 和 Mailpit，不会发送真实邮件。配置与启动说明见 [`deploy/keycloak/README.md`](deploy/keycloak/README.md)。首次启动前必须从模板创建被忽略的本地密码文件。
+
 ### 质量验证
 
 ```bash
 npm run generate:sdk
+npm run identity:validate
 npm run lint
 npm run typecheck
 npm test
@@ -132,10 +135,16 @@ iweioo-api
 
 The platform API exposes `/v1/health/live` and `/v1/health/ready`. Use `iweioo-worker --healthcheck` for a one-shot worker process check.
 
+The local identity environment uses Keycloak, a dedicated PostgreSQL database,
+and Mailpit without sending real email. See
+[`deploy/keycloak/README.md`](deploy/keycloak/README.md); create the ignored
+local password file from its template before first start.
+
 ### Quality checks
 
 ```bash
 npm run generate:sdk
+npm run identity:validate
 npm run lint
 npm run typecheck
 npm test

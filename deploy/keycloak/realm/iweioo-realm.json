@@ -1,0 +1,239 @@
+{
+  "realm": "iweioo",
+  "displayName": "iweioo Local",
+  "enabled": true,
+  "sslRequired": "external",
+  "registrationAllowed": true,
+  "registrationEmailAsUsername": true,
+  "rememberMe": false,
+  "verifyEmail": true,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": true,
+  "editUsernameAllowed": false,
+  "bruteForceProtected": true,
+  "permanentLockout": false,
+  "maxFailureWaitSeconds": 900,
+  "minimumQuickLoginWaitSeconds": 60,
+  "waitIncrementSeconds": 60,
+  "quickLoginCheckMilliSeconds": 1000,
+  "maxDeltaTimeSeconds": 43200,
+  "failureFactor": 5,
+  "passwordPolicy": "length(12) and maxLength(128) and digits(1) and lowerCase(1) and upperCase(1) and specialChars(1) and notUsername(undefined)",
+  "accessTokenLifespan": 300,
+  "ssoSessionIdleTimeout": 1800,
+  "ssoSessionMaxLifespan": 36000,
+  "offlineSessionIdleTimeout": 2592000,
+  "offlineSessionMaxLifespanEnabled": true,
+  "offlineSessionMaxLifespan": 5184000,
+  "accessCodeLifespan": 60,
+  "accessCodeLifespanUserAction": 300,
+  "accessCodeLifespanLogin": 1800,
+  "actionTokenGeneratedByUserLifespan": 300,
+  "actionTokenGeneratedByAdminLifespan": 43200,
+  "internationalizationEnabled": true,
+  "supportedLocales": ["zh-CN", "en"],
+  "defaultLocale": "zh-CN",
+  "eventsEnabled": true,
+  "eventsExpiration": 604800,
+  "eventsListeners": ["jboss-logging"],
+  "adminEventsEnabled": true,
+  "adminEventsDetailsEnabled": true,
+  "smtpServer": {
+    "host": "identity-mail",
+    "port": "1025",
+    "from": "no-reply@local.iweioo.test",
+    "fromDisplayName": "iweioo Local",
+    "replyTo": "support@local.iweioo.test",
+    "auth": "false",
+    "ssl": "false",
+    "starttls": "false"
+  },
+  "roles": {
+    "realm": [
+      {
+        "name": "user",
+        "description": "Verified iweioo user"
+      },
+      {
+        "name": "support_agent",
+        "description": "Audited customer support operations"
+      },
+      {
+        "name": "content_operator",
+        "description": "Platform content operations"
+      },
+      {
+        "name": "auditor",
+        "description": "Read-only audit and compliance access"
+      },
+      {
+        "name": "platform_admin",
+        "description": "Privileged platform administration; MFA required outside this local baseline"
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "iweioo-portal",
+      "name": "iweioo Portal BFF",
+      "description": "Local confidential web client for iweioo.com",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "publicClient": false,
+      "bearerOnly": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "frontchannelLogout": true,
+      "fullScopeAllowed": false,
+      "rootUrl": "http://localhost:3000",
+      "baseUrl": "http://localhost:3000/",
+      "redirectUris": ["http://localhost:3000/auth/callback"],
+      "webOrigins": ["http://localhost:3000"],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://localhost:3000/",
+        "backchannel.logout.session.required": "true",
+        "backchannel.logout.revoke.offline.tokens": "true"
+      },
+      "protocol": "openid-connect",
+      "protocolMappers": [
+        {
+          "name": "iweioo-portal audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "iweioo-portal",
+            "id.token.claim": "false",
+            "access.token.claim": "true",
+            "introspection.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "iweioo-account",
+      "name": "iweioo Account BFF",
+      "description": "Local confidential web client for account.iweioo.com",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "publicClient": false,
+      "bearerOnly": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "frontchannelLogout": true,
+      "fullScopeAllowed": false,
+      "rootUrl": "http://localhost:3001",
+      "baseUrl": "http://localhost:3001/",
+      "redirectUris": ["http://localhost:3001/auth/callback"],
+      "webOrigins": ["http://localhost:3001"],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://localhost:3001/",
+        "backchannel.logout.session.required": "true",
+        "backchannel.logout.revoke.offline.tokens": "true"
+      },
+      "protocol": "openid-connect",
+      "protocolMappers": [
+        {
+          "name": "iweioo-account audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "iweioo-account",
+            "id.token.claim": "false",
+            "access.token.claim": "true",
+            "introspection.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "iweioo-interview",
+      "name": "iweioo Interview BFF",
+      "description": "Local confidential web client for interview.iweioo.com",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "publicClient": false,
+      "bearerOnly": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "frontchannelLogout": true,
+      "fullScopeAllowed": false,
+      "rootUrl": "http://localhost:3100",
+      "baseUrl": "http://localhost:3100/",
+      "redirectUris": ["http://localhost:3100/auth/callback"],
+      "webOrigins": ["http://localhost:3100"],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://localhost:3100/",
+        "backchannel.logout.session.required": "true",
+        "backchannel.logout.revoke.offline.tokens": "true"
+      },
+      "protocol": "openid-connect",
+      "protocolMappers": [
+        {
+          "name": "iweioo-interview audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "iweioo-interview",
+            "id.token.claim": "false",
+            "access.token.claim": "true",
+            "introspection.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "iweioo-defense",
+      "name": "iweioo Thesis Defense BFF",
+      "description": "Local confidential web client for defense.iweioo.com",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "publicClient": false,
+      "bearerOnly": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "frontchannelLogout": true,
+      "fullScopeAllowed": false,
+      "rootUrl": "http://localhost:3200",
+      "baseUrl": "http://localhost:3200/",
+      "redirectUris": ["http://localhost:3200/auth/callback"],
+      "webOrigins": ["http://localhost:3200"],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://localhost:3200/",
+        "backchannel.logout.session.required": "true",
+        "backchannel.logout.revoke.offline.tokens": "true"
+      },
+      "protocol": "openid-connect",
+      "protocolMappers": [
+        {
+          "name": "iweioo-defense audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "iweioo-defense",
+            "id.token.claim": "false",
+            "access.token.claim": "true",
+            "introspection.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ],
+  "users": []
+}
