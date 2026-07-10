@@ -8,7 +8,9 @@ Local safeguards:
 
 - Keycloak and Mailpit UI ports bind to `127.0.0.1` only;
 - PostgreSQL and SMTP have no host port;
-- the identity network has no external route;
+- PostgreSQL joins only the internal network;
+- Keycloak and Mailpit also join a local edge network so loopback port
+  publishing works on Docker Desktop and GitHub-hosted runners;
 - images use explicit patch versions;
 - passwords are required from an ignored local env file;
 - the PostgreSQL 18 volume uses `/var/lib/postgresql`, matching the official

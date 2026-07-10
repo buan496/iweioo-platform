@@ -100,6 +100,9 @@ test("local OIDC clients are confidential BFF clients with exact PKCE routes", (
 test("identity Compose is local-only, pinned, and keeps data services private", () => {
   const compose = read("deploy/compose/identity.compose.yml");
   const envExample = read("deploy/compose/.env.identity.example");
+  const databaseBlock = compose.match(/  identity-db:\n([\s\S]*?)\n  identity-mail:/)?.[1];
+  const mailBlock = compose.match(/  identity-mail:\n([\s\S]*?)\n  identity:/)?.[1];
+  const identityBlock = compose.match(/  identity:\n([\s\S]*?)\nnetworks:/)?.[1];
 
   assert.match(compose, /quay\.io\/keycloak\/keycloak:26\.6\.4/);
   assert.match(compose, /postgres:18\.4-alpine3\.24/);
@@ -111,7 +114,17 @@ test("identity Compose is local-only, pinned, and keeps data services private", 
   assert.ok(!compose.includes(":1025\""));
   assert.match(compose, /identity-postgres:\/var\/lib\/postgresql/);
   assert.match(compose, /internal: true/);
+  assert.match(compose, /identity-edge:/);
   assert.match(compose, /no-new-privileges:true/);
+  assert.ok(databaseBlock);
+  assert.ok(mailBlock);
+  assert.ok(identityBlock);
+  assert.match(databaseBlock, /- identity-internal/);
+  assert.ok(!databaseBlock.includes("identity-edge"));
+  assert.match(mailBlock, /- identity-internal/);
+  assert.match(mailBlock, /- identity-edge/);
+  assert.match(identityBlock, /- identity-internal/);
+  assert.match(identityBlock, /- identity-edge/);
   assert.match(envExample, /^KC_BOOTSTRAP_ADMIN_PASSWORD=$/m);
   assert.match(envExample, /^KEYCLOAK_DB_PASSWORD=$/m);
 });

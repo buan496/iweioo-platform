@@ -9,6 +9,10 @@ contacting a real mail provider. It runs:
 - PostgreSQL `18.4` on the private Compose network;
 - Mailpit `1.30.0` at `http://localhost:8025`.
 
+PostgreSQL stays on the internal network. Keycloak and Mailpit additionally
+join a local edge network required for host loopback port publishing; neither
+database port 5432 nor SMTP port 1025 is published.
+
 The Keycloak image uses `start-dev`. Do not deploy this profile to staging or
 production.
 

@@ -31,6 +31,7 @@ services:
       - "127.0.0.1:${MAILPIT_UI_PORT:-8025}:8025"
     networks:
       - identity-internal
+      - identity-edge
     security_opt:
       - no-new-privileges:true
 
@@ -63,6 +64,7 @@ services:
       - ../keycloak/realm:/opt/keycloak/data/import:ro
     networks:
       - identity-internal
+      - identity-edge
     security_opt:
       - no-new-privileges:true
     mem_limit: 1g
@@ -70,6 +72,7 @@ services:
 networks:
   identity-internal:
     internal: true
+  identity-edge:
 
 volumes:
   identity-postgres:
