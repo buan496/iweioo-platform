@@ -143,6 +143,60 @@ main {
   color: #ffffff;
 }
 
+.auth-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.auth-controls form {
+  margin: 0;
+}
+
+.auth-action {
+  appearance: none;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: rgba(245, 245, 247, 0.72);
+  font: inherit;
+  cursor: pointer;
+}
+
+.auth-action:hover {
+  color: #ffffff;
+}
+
+.auth-register {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 12px;
+  border: 1px solid rgba(125, 200, 255, 0.34);
+  border-radius: var(--radius-pill);
+  background: rgba(0, 113, 227, 0.18);
+  color: #ffffff;
+}
+
+.auth-register:hover {
+  border-color: rgba(125, 200, 255, 0.62);
+  background: rgba(0, 113, 227, 0.3);
+  color: #ffffff;
+}
+
+.auth-user {
+  max-width: 150px;
+  overflow: hidden;
+  color: rgba(245, 245, 247, 0.82);
+  text-overflow: ellipsis;
+}
+
+.auth-loading {
+  min-width: 32px;
+  color: rgba(245, 245, 247, 0.42);
+  text-align: center;
+}
+
 .footer {
   border-top: 1px solid var(--color-line);
   margin-top: var(--space-section);
@@ -156,6 +210,50 @@ main {
   justify-content: space-between;
   gap: 16px;
   flex-wrap: wrap;
+}
+
+.auth-error-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 40px 20px;
+  background:
+    radial-gradient(circle at 50% 10%, rgba(125, 200, 255, 0.18), transparent 28rem),
+    var(--color-hero);
+  color: var(--color-hero-ink);
+}
+
+.auth-error-card {
+  width: min(680px, 100%);
+  padding: clamp(28px, 6vw, 54px);
+  border: 1px solid var(--color-line-inverse);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.055);
+  box-shadow: 0 28px 90px rgba(0, 0, 0, 0.34);
+}
+
+.auth-error-card h1 {
+  font-size: clamp(2.5rem, 8vw, 4.8rem);
+}
+
+.auth-error-card p {
+  color: rgba(245, 245, 247, 0.7);
+}
+
+.auth-error-card .auth-error-en {
+  color: rgba(245, 245, 247, 0.5);
+}
+
+.auth-error-card code {
+  display: block;
+  width: fit-content;
+  margin: 24px 0;
+  padding: 8px 10px;
+  border: 1px solid var(--color-line-inverse);
+  border-radius: var(--radius);
+  color: var(--color-cyan);
+  font-size: 0.82rem;
+  overflow-wrap: anywhere;
 }
 
 .product-catalog {
@@ -1497,6 +1595,25 @@ main.inner-page + .footer {
 }
 
 @media (max-width: 720px) {
+  .nav {
+    align-items: flex-start;
+    padding: 12px 0;
+  }
+
+  .nav-links {
+    justify-content: flex-end;
+    gap: 12px;
+    white-space: normal;
+  }
+
+  .nav-links > a:not(:last-of-type) {
+    display: none;
+  }
+
+  .auth-user {
+    max-width: 92px;
+  }
+
   .inner-hero {
     padding-top: 64px;
   }

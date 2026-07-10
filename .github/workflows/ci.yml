@@ -96,6 +96,7 @@ jobs:
       IDENTITY_COMPOSE_FILE: deploy/compose/identity.compose.yml
       KEYCLOAK_DB_PASSWORD: not-a-secret
       KC_BOOTSTRAP_ADMIN_PASSWORD: not-a-secret
+      IDENTITY_REDIS_PASSWORD: not-a-secret
 
     steps:
       - name: Checkout
@@ -122,6 +123,8 @@ jobs:
             '.issuer == "http://localhost:8080/realms/iweioo" and (.code_challenge_methods_supported | index("S256") != null)' \
             discovery.json
           curl --fail --silent --show-error http://127.0.0.1:8025/api/v1/info > /dev/null
+          docker compose --file "$IDENTITY_COMPOSE_FILE" exec -T identity-session \
+            sh -ec 'REDISCLI_AUTH="$REDIS_PASSWORD" redis-cli ping' | grep --fixed-strings --line-regexp PONG
 
       - name: Show identity logs on failure
         if: failure()

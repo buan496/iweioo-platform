@@ -108,7 +108,8 @@ explicitly grants that access.
 
 The Stage 2 development profile lives under `deploy/keycloak` and
 `deploy/compose/identity.compose.yml`. It imports a secret-free realm into a
-dedicated local PostgreSQL database and routes email to Mailpit. All published
+dedicated local PostgreSQL database, routes email to Mailpit, and provides a
+password-protected, non-persistent Redis instance for BFF state. All published
 ports bind to loopback; database and SMTP ports remain private.
 
 The imported Web clients are confidential BFF clients, require Authorization
@@ -116,9 +117,20 @@ Code plus PKCE `S256`, use one exact callback URI, disable implicit and direct
 password grants, and receive an audience restricted to their client ID. No
 client secret or privileged user is committed.
 
+The portal implements the first application-side integration at `/auth/login`,
+`/auth/register`, `/auth/callback`, `/api/auth/session`, and POST-only
+`/auth/logout`. OIDC transaction records are one-time and expire after ten
+minutes. Access, refresh, and ID tokens stay in Redis; the browser receives a
+random host-only session handle. Portal sessions default to the 30-minute realm
+idle window and are further bounded by the refresh-token lifetime. The session
+API returns an explicit safe DTO,
+and logout requires both an exact same-origin request and a session-bound CSRF
+token before local deletion, token revocation, and RP-initiated logout.
+
 This profile is evidence for local contract development only. `start-dev`,
-Mailpit, localhost redirect URIs, and bootstrap administration are prohibited
-in staging and production. See the [local identity runbook](../../deploy/keycloak/README.md).
+Mailpit, loopback Redis publishing, localhost redirect URIs, and bootstrap
+administration are prohibited in staging and production. See the
+[local identity runbook](../../deploy/keycloak/README.md).
 
 ## Standards references
 

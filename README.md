@@ -8,12 +8,13 @@
 
 这是 `iweioo.com` 面向大学生的开源 AI 学习平台仓库。平台门户统一呈现产品、博客、关于和开源项目；大厂面试训练与论文答辩 Agent 继续作为独立应用部署在各自子域名，并通过统一身份、用量和隐私契约接入。
 
-当前版本是 Stage 1 工程基础，不代表产品已经开放：
+当前版本已完成 Stage 1 工程基础，并进入 Stage 2 身份接入，不代表产品已经开放：
 
 - `iweioo.com`：双语平台门户与内容栏目；
 - `interview.iweioo.com`：大厂面试训练，状态为建设中；
 - `defense.iweioo.com`：论文答辩 Agent，状态为建设中；
-- `auth.iweioo.com` 与计费能力：只有已批准契约，真实实现属于后续阶段。
+- 统一身份：本地 Keycloak 与门户 OIDC BFF 已实现；生产 `auth.iweioo.com` 仍属于后续部署；
+- 计费能力：当前只有已批准契约，真实实现属于后续阶段。
 
 ### 仓库结构
 
@@ -55,7 +56,11 @@ iweioo-api
 
 平台 API 健康端点为 `http://127.0.0.1:8000/v1/health/live` 和 `/v1/health/ready`。Worker 可用 `iweioo-worker --healthcheck` 检查进程骨架。
 
-本地统一身份环境使用 Keycloak、独立 PostgreSQL 和 Mailpit，不会发送真实邮件。配置与启动说明见 [`deploy/keycloak/README.md`](deploy/keycloak/README.md)。首次启动前必须从模板创建被忽略的本地密码文件。
+本地统一身份环境使用 Keycloak、独立 PostgreSQL、Mailpit 和仅保存临时
+BFF 会话的 Redis，不会发送真实邮件。门户已经实现 Authorization Code +
+PKCE、服务端令牌存储、邮箱验证、统一登录和 CSRF 防护注销。配置与启动
+说明见 [`deploy/keycloak/README.md`](deploy/keycloak/README.md)。首次启动前
+必须从模板创建被忽略的身份密码文件和门户环境文件。
 
 ### 质量验证
 
@@ -71,7 +76,8 @@ python -m mypy apps/api/src apps/worker/src
 python -m pytest
 ```
 
-Web 静态产物位于 `apps/web/out/`。CI 会拒绝 SDK 生成结果漂移。
+Web 使用 Next.js Node 运行时，生产构建位于 `apps/web/.next/`；公开内容页仍
+在构建时预渲染，认证路由按请求运行。CI 会拒绝 SDK 生成结果漂移。
 
 ### 域名、许可与安全
 
@@ -88,12 +94,15 @@ Web 静态产物位于 `apps/web/out/`。CI 会拒绝 SDK 生成结果漂移。
 
 This is the open-source platform repository for `iweioo.com`, an AI learning platform for university students. The portal presents products, writing, about, and open-source work. The technical-interview and thesis-defense products stay independently deployable and integrate through shared identity, usage, and privacy contracts.
 
-The current release is a Stage 1 engineering foundation, not a public-product claim:
+The current release has completed the Stage 1 engineering foundation and has
+entered Stage 2 identity integration. It is not a public-product claim:
 
 - `iweioo.com`: bilingual platform portal and content;
 - `interview.iweioo.com`: interview training, marked in development;
 - `defense.iweioo.com`: thesis-defense agent, marked in development;
-- `auth.iweioo.com` and billing: accepted contracts only; implementation follows later.
+- identity: local Keycloak and the portal OIDC BFF are implemented; production
+  `auth.iweioo.com` deployment follows later;
+- billing: accepted contracts only; implementation follows later.
 
 ### Repository layout
 
@@ -136,9 +145,11 @@ iweioo-api
 The platform API exposes `/v1/health/live` and `/v1/health/ready`. Use `iweioo-worker --healthcheck` for a one-shot worker process check.
 
 The local identity environment uses Keycloak, a dedicated PostgreSQL database,
-and Mailpit without sending real email. See
+Mailpit, and Redis for ephemeral BFF state without sending real email. The
+portal implements Authorization Code with PKCE, server-side token storage,
+verified email, SSO, and CSRF-protected logout. See
 [`deploy/keycloak/README.md`](deploy/keycloak/README.md); create the ignored
-local password file from its template before first start.
+identity password and portal environment files before first start.
 
 ### Quality checks
 
@@ -154,7 +165,9 @@ python -m mypy apps/api/src apps/worker/src
 python -m pytest
 ```
 
-The static web output is written to `apps/web/out/`. CI rejects generated SDK drift.
+The Web app uses the Next.js Node runtime and builds into `apps/web/.next/`.
+Public content remains prerendered while authentication routes execute on
+demand. CI rejects generated SDK drift.
 
 ### Domain, license, and security
 

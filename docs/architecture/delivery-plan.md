@@ -81,6 +81,11 @@ health checks.
 Exit: one verified user can sign in once and enter all staging subdomains
 without shared parent-domain cookies.
 
+Current slice: the local identity provider and the portal BFF login, register,
+verified-user callback, server-side Redis session, safe session DTO, and global
+logout path are implemented. Account/profile/consent, privileged MFA, product
+subdomain BFFs, and staging evidence remain before the Stage 2 exit is met.
+
 ### Stage 3: credits, usage, and product contracts
 
 - implement append-only ledger, Beta grants, hold, settlement, and release;

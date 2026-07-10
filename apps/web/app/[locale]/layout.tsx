@@ -5,6 +5,7 @@ import { dictionary, isLocale, locales, otherLocale } from "@/lib/i18n";
 import { siteProfile } from "@/data/site";
 import type { Locale } from "@/lib/types";
 import { CursorHalo } from "@/components/CursorHalo";
+import { AuthControls } from "@/components/AuthControls";
 
 type LocaleLayoutProps = {
   children: React.ReactNode;
@@ -52,6 +53,7 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
               </Link>
             ))}
             <Link href={`/${otherLocale(locale)}/`}>{copy.nav.language}</Link>
+            <AuthControls locale={locale} labels={copy.auth} />
           </div>
         </nav>
       </header>

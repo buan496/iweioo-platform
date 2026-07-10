@@ -7,17 +7,21 @@ contacting a real mail provider. It runs:
 
 - Keycloak `26.6.4` at `http://localhost:8080`;
 - PostgreSQL `18.4` on the private Compose network;
-- Mailpit `1.30.0` at `http://localhost:8025`.
+- Mailpit `1.30.0` at `http://localhost:8025`;
+- Redis `8.4.4` at `127.0.0.1:6379` for ephemeral BFF transactions and sessions.
 
-PostgreSQL stays on the internal network. Keycloak and Mailpit additionally
-join a local edge network required for host loopback port publishing; neither
-database port 5432 nor SMTP port 1025 is published.
+PostgreSQL stays on the internal network. Keycloak, Mailpit, and Redis join a
+local edge network required for host loopback port publishing. PostgreSQL port
+5432 and SMTP port 1025 are not published. Redis is password protected,
+loopback only, and deliberately non-persistent because it is not an
+authoritative user-data store.
 
 The Keycloak image uses `start-dev`. Do not deploy this profile to staging or
 production.
 
 CI starts the complete profile from an empty volume, verifies OIDC discovery
-and PKCE `S256`, checks the Mailpit API, and always deletes the ephemeral data.
+and PKCE `S256`, checks Mailpit and authenticated Redis health, and always
+deletes the ephemeral data.
 
 ## First start
 
@@ -27,8 +31,9 @@ From the repository root in PowerShell:
 Copy-Item deploy/compose/.env.identity.example deploy/compose/.env.identity.local
 ```
 
-Edit `.env.identity.local` and set both blank password values with unique local
-values from a password generator. The local file is ignored by Git. Then run:
+Edit `.env.identity.local` and set all three blank password values with unique,
+URL-safe values from a password generator. The local file is ignored by Git.
+Then run:
 
 ```powershell
 docker compose --env-file deploy/compose/.env.identity.local `
@@ -44,9 +49,32 @@ Invoke-RestMethod `
 ```
 
 Open the Keycloak administration console at `http://localhost:8080/admin/` and
-Mailpit at `http://localhost:8025/`. Register through the realm account console
-at `http://localhost:8080/realms/iweioo/account/`; verification and recovery
-messages remain inside Mailpit.
+Mailpit at `http://localhost:8025/`.
+
+## Connect the portal BFF
+
+In the administration console, open **iweioo → Clients → iweioo-portal →
+Credentials** and copy the generated client secret. Never paste it into a
+tracked file.
+
+Create the ignored portal environment file:
+
+```powershell
+Copy-Item apps/web/.env.example apps/web/.env.local
+```
+
+Set `OIDC_CLIENT_SECRET` to the generated client secret and set
+`BFF_REDIS_URL` to the local Redis connection using the same URL-safe password
+from `IDENTITY_REDIS_PASSWORD`:
+
+```dotenv
+BFF_REDIS_URL=redis://:<local-redis-password>@127.0.0.1:6379/0
+```
+
+Run `npm run dev`, open `http://localhost:3000/zh/`, and use the portal's
+Register or Sign in control. Verification and recovery messages remain inside
+Mailpit. The portal uses `prompt=create` for registration and the exact
+`http://localhost:3000/auth/callback` redirect URI.
 
 ## Imported contract
 
@@ -61,8 +89,17 @@ messages remain inside Mailpit.
 - Mailpit-only SMTP with no authentication or external delivery.
 
 Client credentials are generated and stored by local Keycloak, never in the
-realm JSON. Application integration will retrieve them into an ignored local
-secret store in a later PR.
+realm JSON. The portal reads its credential only from the ignored runtime
+environment.
+
+The portal BFF stores one-time PKCE transactions and OIDC tokens in Redis. The
+browser receives only host-only opaque `HttpOnly`, `SameSite=Lax` cookies.
+Production HTTPS changes their names to the `__Host-` form and enables the
+`Secure` attribute. Logout is a same-origin, CSRF-checked POST that deletes the
+local record, attempts refresh-token revocation, and performs RP-initiated
+logout. Transactions expire after ten minutes. Sessions default to the
+Keycloak 30-minute idle window and are further bounded by the issued refresh
+token lifetime.
 
 ## Stop and reset
 
@@ -86,9 +123,10 @@ Run the first-start command again after the reset.
 
 ## Deliberate non-goals
 
-This slice does not implement application BFF sessions, production TLS and
-proxy headers, real SMTP, administrator MFA enforcement, backup/restore,
-high availability, or production secrets. Those controls remain release gates.
+This slice does not implement production TLS and proxy headers, real SMTP,
+administrator MFA enforcement, Redis high availability, production secrets,
+access-token refresh on product API calls, or multi-device session management.
+Those controls remain release gates.
 
 References:
 

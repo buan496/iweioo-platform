@@ -35,6 +35,30 @@ services:
     security_opt:
       - no-new-privileges:true
 
+  identity-session:
+    image: redis:8.4.4-alpine3.22
+    command:
+      - sh
+      - -ec
+      - exec redis-server --save '' --appendonly no --maxmemory 192mb --maxmemory-policy volatile-ttl --requirepass "$${REDIS_PASSWORD}"
+    environment:
+      REDIS_PASSWORD: "${IDENTITY_REDIS_PASSWORD:?set IDENTITY_REDIS_PASSWORD in the local env file}"
+    healthcheck:
+      test: ["CMD-SHELL", "REDISCLI_AUTH=\"$${REDIS_PASSWORD}\" redis-cli ping | grep -q PONG"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 5s
+    ports:
+      - "127.0.0.1:${IDENTITY_REDIS_PORT:-6379}:6379"
+    tmpfs:
+      - /data
+    networks:
+      - identity-edge
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 256m
+
   identity:
     image: quay.io/keycloak/keycloak:26.6.4
     command:

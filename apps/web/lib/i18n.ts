@@ -23,6 +23,12 @@ export const dictionary = {
       about: "关于",
       language: "English"
     },
+    auth: {
+      login: "登录",
+      register: "注册",
+      logout: "退出",
+      loading: "正在检查登录状态"
+    },
     home: {
       eyebrow: "iweioo.com",
       title: "iweioo",
@@ -94,6 +100,12 @@ export const dictionary = {
       blog: "Writing",
       about: "About",
       language: "中文"
+    },
+    auth: {
+      login: "Sign in",
+      register: "Register",
+      logout: "Sign out",
+      loading: "Checking sign-in status"
     },
     home: {
       eyebrow: "iweioo.com",
