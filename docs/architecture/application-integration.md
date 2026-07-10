@@ -24,6 +24,13 @@ Every application receives:
 
 Credentials are environment-specific and never committed.
 
+Each product also submits a manifest conforming to
+[`contracts/applications/application-manifest.schema.json`](../../contracts/applications/application-manifest.schema.json).
+The checked-in interview and defense manifests remain `planned` until their
+onboarding gates pass; a manifest never contains credentials or an
+environment-specific private service address. Deployment configuration
+combines the registered internal base URL with `lifecycle_callback_path`.
+
 ## Required integration sequence
 
 1. Redirect unauthenticated users to the central OIDC authorization endpoint.

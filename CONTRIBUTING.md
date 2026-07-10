@@ -7,7 +7,7 @@ Thank you for contributing to iweioo-platform.
 1. Open or reference a GitHub issue before substantial work.
 2. Create a short-lived branch from `main`.
 3. Add tests and documentation appropriate to the change.
-4. Run `npm run lint`, `npm run typecheck`, `npm test`, and `npm run build`.
+4. Run the Node and Python checks documented in `README.md`.
 5. Open a pull request and wait for all required checks and review.
 
 Do not commit credentials, personal data, model outputs containing private

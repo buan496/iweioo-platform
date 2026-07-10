@@ -31,6 +31,7 @@ capability into the launch scope.
 - [Identity and access](identity-and-access.md)
 - [Data model and ownership](data-model.md)
 - [Application integration contract](application-integration.md)
+- [Platform workspace foundation](workspace.md)
 - [Security, privacy, and operations](security-privacy-operations.md)
 - [Repository evolution and delivery plan](delivery-plan.md)
 - [Architecture decisions](decisions/README.md)

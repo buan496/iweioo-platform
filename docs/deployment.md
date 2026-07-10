@@ -13,14 +13,14 @@ npm run build
 npm run preview
 ```
 
-The deployable output is `out/`.
+The deployable output is `apps/web/out/`.
 
 ## Static preview VPS option
 
 For a temporary static preview on an authorized VPS:
 
 1. Build locally or in CI with `npm run build`.
-2. Upload the contents of `out/` to the server, for example `/var/www/iweioo.com`.
+2. Upload the contents of `apps/web/out/` to the server, for example `/var/www/iweioo.com`.
 3. Serve the folder with Nginx or Caddy.
 4. Configure TLS only after the intended DNS and filing requirements are met.
 

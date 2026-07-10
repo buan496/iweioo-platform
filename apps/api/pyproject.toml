@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=80"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "iweioo-platform-api"
+version = "0.1.0"
+description = "Modular FastAPI boundary for the iweioo platform."
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi==0.139.0",
+  "uvicorn==0.51.0"
+]
+
+[project.optional-dependencies]
+dev = [
+  "httpx2==2.5.0",
+  "mypy==2.2.0",
+  "pytest==9.1.1",
+  "ruff==0.15.21"
+]
+
+[project.scripts]
+iweioo-api = "iweioo_api.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

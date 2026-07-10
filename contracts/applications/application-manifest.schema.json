@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://iweioo.com/schemas/application-manifest.v1.json",
+  "title": "iweioo application integration manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "app_id",
+    "display_name",
+    "status",
+    "public_base_url",
+    "oidc",
+    "billing",
+    "privacy",
+    "observability"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "app_id": { "type": "string", "pattern": "^[a-z][a-z0-9-]{1,31}$" },
+    "display_name": { "type": "string", "minLength": 1, "maxLength": 80 },
+    "status": { "enum": ["planned", "staging", "available", "maintenance", "disabled"] },
+    "public_base_url": { "type": "string", "format": "uri", "pattern": "^https://" },
+    "oidc": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["audience", "redirect_uris", "post_logout_redirect_uris"],
+      "properties": {
+        "audience": { "type": "string", "minLength": 3, "maxLength": 80 },
+        "redirect_uris": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "format": "uri", "pattern": "^https://" }
+        },
+        "post_logout_redirect_uris": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "format": "uri", "pattern": "^https://" }
+        }
+      }
+    },
+    "billing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["billable", "authority", "service_scopes"],
+      "properties": {
+        "billable": { "type": "boolean" },
+        "authority": { "const": "iweioo-platform-api" },
+        "service_scopes": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "enum": ["usage:write", "events:write"] }
+        }
+      }
+    },
+    "privacy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["owned_data_classes", "lifecycle_callback_path"],
+      "properties": {
+        "owned_data_classes": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^[a-z][a-z0-9_.-]+$" }
+        },
+        "lifecycle_callback_path": {
+          "type": "string",
+          "pattern": "^/internal/",
+          "maxLength": 200
+        }
+      }
+    },
+    "observability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["health_path", "readiness_path", "metrics_path"],
+      "properties": {
+        "health_path": { "type": "string", "pattern": "^/" },
+        "readiness_path": { "type": "string", "pattern": "^/" },
+        "metrics_path": { "type": "string", "pattern": "^/" }
+      }
+    }
+  }
+}
