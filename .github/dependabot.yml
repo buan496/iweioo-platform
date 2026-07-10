@@ -11,6 +11,10 @@ updates:
         dependency-type: production
       development-dependencies:
         dependency-type: development
+        # Major toolchain upgrades require dedicated compatibility PRs.
+        update-types:
+          - minor
+          - patch
 
   - package-ecosystem: github-actions
     directory: /
