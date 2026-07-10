@@ -1,0 +1,19 @@
+{
+  "specversion": "1.0",
+  "id": "fe99b0da-669a-454e-8f98-97af9b1d3f19",
+  "source": "/platform/usage",
+  "type": "iweioo.usage.settled.v1",
+  "subject": "users/80b5154b-26b5-48d3-9052-ac1a8971332f",
+  "time": "2026-07-10T03:01:00Z",
+  "datacontenttype": "application/json",
+  "data_classification": "personal",
+  "data": {
+    "app_id": "interview",
+    "usage_id": "cdd09e3a-1c2c-4db0-b6dd-e24c7ef5fd2c",
+    "pricing_version": "beta-pricing-v1",
+    "model_route": "auto/interview-scoring",
+    "provider_cost_micros": "12500",
+    "charge_micros": "25000",
+    "status": "settled"
+  }
+}
