@@ -9,10 +9,12 @@ Target layout:
 
 ```text
 apps/
-  web/                 Next.js portal, account BFF, blog
+  web/                 Next.js portal and blog
+  account/             Next.js account center
   api/                 FastAPI platform modular monolith
   worker/              Outbox, lifecycle, notification jobs
 packages/
+  auth-bff/            Shared server-only OIDC BFF handlers
   ui/                  Shared UI incubation package
   sdk/                 Generated contract types and integration helpers
 contracts/
@@ -81,10 +83,14 @@ health checks.
 Exit: one verified user can sign in once and enter all staging subdomains
 without shared parent-domain cookies.
 
-Current slice: the local identity provider and the portal BFF login, register,
-verified-user callback, server-side Redis session, safe session DTO, and global
-logout path are implemented. Account/profile/consent, privileged MFA, product
-subdomain BFFs, and staging evidence remain before the Stage 2 exit is met.
+Current slice: the local identity provider, reusable OIDC BFF package, portal
+and account BFF routes, verified-user callbacks, app-isolated Redis sessions,
+safe session DTOs, RP-initiated identity-provider logout, and the account-center foundation are
+implemented. A real local smoke verified that one credential login produced
+separate portal and account application sessions for the same verified global
+subject. Durable profile/consent APIs, multi-device session management,
+privileged MFA, product-subdomain BFFs, and staging evidence remain before the
+Stage 2 exit is met.
 
 ### Stage 3: credits, usage, and product contracts
 

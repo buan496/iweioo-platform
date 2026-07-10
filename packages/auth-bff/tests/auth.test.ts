@@ -4,21 +4,18 @@ import {
   loadAuthConfig,
   sessionCookieOptions,
   transactionCookieOptions
-} from "../lib/auth/config";
+} from "../src/config";
 import {
   isOidcTransaction,
-  isPortalSession,
+  isBffSession,
+  isPublicSession,
   verifiedUserFromClaims
-} from "../lib/auth/model";
-import {
-  constantTimeEqual,
-  isSameOriginPost,
-  safeReturnPath
-} from "../lib/auth/security";
-import { canonicalPublicPath } from "../lib/public-route";
+} from "../src/model";
+import { constantTimeEqual, isSameOriginPost, safeReturnPath } from "../src/security";
 
 const localEnvironment: NodeJS.ProcessEnv = {
   NODE_ENV: "development",
+  AUTH_APP_ID: "portal",
   APP_ORIGIN: "http://localhost:3000",
   OIDC_ISSUER: "http://localhost:8080/realms/iweioo",
   OIDC_CLIENT_ID: "iweioo-portal",
@@ -26,14 +23,15 @@ const localEnvironment: NodeJS.ProcessEnv = {
   BFF_REDIS_URL: "redis://:test-fixture-not-a-secret@127.0.0.1:6379/0" // gitleaks:allow
 };
 
-test("authentication config derives exact local callback and host-only cookie names", () => {
+test("local config derives exact callback and app-scoped cookie names", () => {
   const config = loadAuthConfig(localEnvironment);
 
+  assert.equal(config.appId, "portal");
   assert.equal(config.appOrigin, "http://localhost:3000");
   assert.equal(config.callbackUrl, "http://localhost:3000/auth/callback");
   assert.equal(config.postLogoutRedirectUrl, "http://localhost:3000/");
-  assert.equal(config.sessionCookieName, "iweioo_session");
-  assert.equal(config.transactionCookieName, "iweioo_oidc_tx");
+  assert.equal(config.sessionCookieName, "iweioo_portal_session");
+  assert.equal(config.transactionCookieName, "iweioo_portal_oidc_tx");
   assert.equal(config.secureCookies, false);
   assert.deepEqual(sessionCookieOptions(config), {
     httpOnly: true,
@@ -46,21 +44,34 @@ test("authentication config derives exact local callback and host-only cookie na
   assert.equal(transactionCookieOptions(config).maxAge, 600);
 });
 
-test("production config uses HTTPS, TLS Redis, and __Host- cookies", () => {
-  const config = loadAuthConfig({
+test("separate local apps cannot collide while production uses host-only cookie prefixes", () => {
+  const portal = loadAuthConfig(localEnvironment);
+  const account = loadAuthConfig({
+    ...localEnvironment,
+    AUTH_APP_ID: "account",
+    APP_ORIGIN: "http://localhost:3001",
+    OIDC_CLIENT_ID: "iweioo-account"
+  });
+  const production = loadAuthConfig({
     ...localEnvironment,
     NODE_ENV: "production",
-    APP_ORIGIN: "https://iweioo.com",
+    APP_ORIGIN: "https://account.iweioo.com",
     OIDC_ISSUER: "https://auth.iweioo.com/realms/iweioo",
     BFF_REDIS_URL: "rediss://:production-redis-password@redis.internal:6379/0"
   });
 
-  assert.equal(config.secureCookies, true);
-  assert.equal(config.sessionCookieName, "__Host-iweioo_session");
-  assert.equal(config.transactionCookieName, "__Host-iweioo_oidc_tx");
+  assert.notEqual(portal.sessionCookieName, account.sessionCookieName);
+  assert.notEqual(portal.transactionCookieName, account.transactionCookieName);
+  assert.equal(production.sessionCookieName, "__Host-iweioo_session");
+  assert.equal(production.transactionCookieName, "__Host-iweioo_oidc_tx");
+  assert.equal(production.secureCookies, true);
 });
 
-test("authentication config rejects unsafe origins and unprotected Redis", () => {
+test("config rejects unsafe identifiers, origins, and unprotected Redis", () => {
+  assert.throws(
+    () => loadAuthConfig({ ...localEnvironment, AUTH_APP_ID: "Portal App" }),
+    /AUTH_APP_ID/
+  );
   assert.throws(
     () => loadAuthConfig({ ...localEnvironment, APP_ORIGIN: "http://iweioo.com" }),
     /HTTPS/
@@ -86,21 +97,12 @@ test("authentication config rejects unsafe origins and unprotected Redis", () =>
   );
 });
 
-test("return paths cannot escape the portal origin", () => {
+test("return paths cannot escape the application origin", () => {
   assert.equal(safeReturnPath("/zh/?from=login#ready"), "/zh/?from=login#ready");
   assert.equal(safeReturnPath("https://evil.example/path", "/zh/"), "/zh/");
   assert.equal(safeReturnPath("//evil.example/path", "/zh/"), "/zh/");
   assert.equal(safeReturnPath("/\\evil.example", "/zh/"), "/zh/");
   assert.equal(safeReturnPath(null, "/zh/"), "/zh/");
-});
-
-test("public pages keep canonical slashes without rewriting exact BFF routes", () => {
-  assert.equal(canonicalPublicPath("/zh"), "/zh/");
-  assert.equal(canonicalPublicPath("/zh/blog"), "/zh/blog/");
-  assert.equal(canonicalPublicPath("/zh/"), null);
-  assert.equal(canonicalPublicPath("/auth/callback"), null);
-  assert.equal(canonicalPublicPath("/api/auth/session"), null);
-  assert.equal(canonicalPublicPath("/robots.txt"), null);
 });
 
 test("logout origin and CSRF helpers reject cross-site inputs", () => {
@@ -119,7 +121,7 @@ test("logout origin and CSRF helpers reject cross-site inputs", () => {
   assert.equal(constantTimeEqual("same-token", "other-token"), false);
 });
 
-test("only verified OIDC identities become portal users", () => {
+test("only verified OIDC identities become public session users", () => {
   assert.deepEqual(
     verifiedUserFromClaims({
       sub: "9fe7173c-7644-42c4-a3d6-e912257e910e",
@@ -144,7 +146,7 @@ test("only verified OIDC identities become portal users", () => {
   );
 });
 
-test("Redis records require complete bounded authentication models", () => {
+test("Redis records and public DTOs require complete bounded models", () => {
   assert.equal(
     isOidcTransaction({
       state: "state",
@@ -160,7 +162,7 @@ test("Redis records require complete bounded authentication models", () => {
   assert.equal(isOidcTransaction({ state: "state" }), false);
 
   assert.equal(
-    isPortalSession({
+    isBffSession({
       user: { platformUserId: "subject", email: "student@example.com", displayName: "Student" },
       accessToken: "access",
       refreshToken: "refresh",
@@ -172,5 +174,16 @@ test("Redis records require complete bounded authentication models", () => {
     }),
     true
   );
-  assert.equal(isPortalSession({ user: {} }), false);
+  assert.equal(isBffSession({ user: {} }), false);
+  assert.equal(isPublicSession({ authenticated: false }), true);
+  assert.equal(
+    isPublicSession({
+      authenticated: true,
+      user: { platformUserId: "subject", email: "student@example.com", displayName: "Student" },
+      csrfToken: "csrf",
+      expiresAt: new Date().toISOString()
+    }),
+    true
+  );
+  assert.equal(isPublicSession({ authenticated: true, accessToken: "secret" }), false);
 });

@@ -6,7 +6,7 @@ const require = createRequire(import.meta.url);
 const packageDirectory = dirname(require.resolve("typescript-7/package.json"));
 const compiler = resolve(packageDirectory, "bin", "tsc");
 const result = spawnSync(process.execPath, [compiler, ...process.argv.slice(2)], {
-  stdio: "inherit",
+  stdio: "inherit"
 });
 
 if (result.error) {

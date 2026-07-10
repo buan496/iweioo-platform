@@ -1,9 +1,9 @@
 import "server-only";
 
 import * as client from "openid-client";
-import type { AuthConfig } from "@/lib/auth/config";
-import type { AuthIntent, OidcTransaction } from "@/lib/auth/model";
-import { hashHandle, randomHandle } from "@/lib/auth/security";
+import type { AuthConfig } from "./config";
+import type { AuthIntent, OidcTransaction } from "./model";
+import { hashHandle, randomHandle } from "./security";
 
 type CachedConfiguration = {
   expiresAt: number;

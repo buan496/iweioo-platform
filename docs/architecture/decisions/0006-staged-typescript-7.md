@@ -6,9 +6,9 @@
 ## Context
 
 TypeScript 7 replaces the JavaScript compiler with a native implementation and
-does not expose the legacy stable programmatic API. The web and UI workspaces
-use the compiler through its command-line interface, while Next.js and the SDK
-generation tool import the TypeScript API.
+does not expose the legacy stable programmatic API. The portal, account,
+authentication, and UI workspaces use the compiler through its command-line
+interface, while Next.js and the SDK generation tool import the TypeScript API.
 
 An all-workspace upgrade proved that the web and UI lint, typecheck, and tests
 can run on TypeScript 7 after removing obsolete compiler options. SDK generation
@@ -19,20 +19,23 @@ the expected API was unavailable.
 
 ## Decision
 
-- `@iweioo/web` uses the TypeScript 7 CLI through the `typescript-7` npm alias
-  and exposes the official TypeScript 6 compatibility package as `typescript`
-  for Next.js and other API consumers. Its typecheck script resolves the aliased
-  compiler explicitly instead of relying on the shared `.bin/tsc` path.
+- `@iweioo/web` and `@iweioo/account` use the TypeScript 7 CLI through the
+  `typescript-7` npm alias and expose the official TypeScript 6 compatibility
+  package as `typescript` for Next.js and other API consumers. Their typecheck
+  scripts use the repository runner, which resolves the aliased compiler
+  explicitly instead of relying on the shared `.bin/tsc` path.
+- `@iweioo/auth-bff` uses TypeScript 7 directly because it does not invoke the
+  Next.js compiler API.
 - `@iweioo/ui` uses TypeScript 7 directly.
 - `@iweioo/sdk` keeps TypeScript `5.9.3` pinned exactly until its generator
   supports TypeScript 7.
 - Compiler versions remain owned by each workspace. Do not use a root override
   to force one TypeScript version across the monorepo.
 - The lock file must resolve TypeScript 5 inside the SDK workspace, the
-  TypeScript 6 compatibility API and TypeScript 7 CLI inside Web, and
-  TypeScript 7 inside UI.
+  TypeScript 6 compatibility API and TypeScript 7 CLI inside both Next.js
+  applications, and TypeScript 7 inside Auth BFF and UI.
 - CI must typecheck every workspace, regenerate the SDK without a diff, and run
-  the production web build before merge.
+  both production Next.js builds before merge.
 
 ## Consequences
 
