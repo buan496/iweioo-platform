@@ -58,7 +58,7 @@ def test_postgres_account_round_trip() -> None:
         identity = IdentityClaims(
             sub=user_id,
             iss="https://auth.iweioo.com/realms/iweioo",
-            email=f"postgres-{user_id}@example.test",
+            email=f"postgres-{user_id}@example.com",
             email_verified=True,
             azp="iweioo-account",
             scope="openid profile email",
