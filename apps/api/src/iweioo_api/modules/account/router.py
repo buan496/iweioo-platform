@@ -23,6 +23,8 @@ from iweioo_api.modules.account.service import (
     list_consents,
     set_consent,
 )
+from iweioo_api.modules.applications.schemas import ApplicationSummary
+from iweioo_api.modules.applications.service import list_user_applications
 from iweioo_api.modules.auth.dependencies import CurrentIdentity
 
 router = APIRouter(prefix="/users/me", tags=["Account"])
@@ -66,6 +68,20 @@ async def list_current_user_consents(
     async with session.begin():
         user, _ = await ensure_user_projection(session, identity)
         return await list_consents(session, user.id)
+
+
+@router.get(
+    "/applications",
+    response_model=list[ApplicationSummary],
+    operation_id="listCurrentUserApplications",
+)
+async def list_current_user_application_summaries(
+    identity: CurrentIdentity,
+    session: Session,
+) -> list[ApplicationSummary]:
+    async with session.begin():
+        user, _ = await ensure_user_projection(session, identity)
+        return await list_user_applications(session, user.id)
 
 
 @router.put(

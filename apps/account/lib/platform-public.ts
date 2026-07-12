@@ -6,6 +6,7 @@ export type ProfilePatch = components["schemas"]["ProfilePatch"];
 export type Consent = components["schemas"]["Consent"];
 export type ConsentStatus = Consent["status"];
 export type ConsentPurpose = "agent_memory" | "growth_profile";
+export type ApplicationSummary = components["schemas"]["ApplicationSummary"];
 
 export type ConsentBundle = {
   consents: Consent[];
@@ -26,6 +27,28 @@ function isOptionalBoundedString(value: unknown, maximum: number): value is stri
 
 function isDateTime(value: unknown): value is string {
   return typeof value === "string" && Number.isFinite(Date.parse(value));
+}
+
+function isOptionalDateTime(value: unknown): value is string | null | undefined {
+  return value === null || value === undefined || isDateTime(value);
+}
+
+function isApplicationUrl(value: unknown, appId: string): value is string {
+  if (typeof value !== "string") {
+    return false;
+  }
+  try {
+    const url = new URL(value);
+    return (
+      url.protocol === "https:" &&
+      !url.username &&
+      !url.password &&
+      !url.port &&
+      url.hostname === `${appId}.iweioo.com`
+    );
+  } catch {
+    return false;
+  }
 }
 
 export function isUserProfile(value: unknown): value is UserProfile {
@@ -78,4 +101,24 @@ export function isConsentBundle(value: unknown): value is ConsentBundle {
     isBoundedString(value.policies.agent_memory, 1, 40) &&
     isBoundedString(value.policies.growth_profile, 1, 40)
   );
+}
+
+export function isApplicationSummary(value: unknown): value is ApplicationSummary {
+  return (
+    isRecord(value) &&
+    isBoundedString(value.app_id, 2, 32) &&
+    /^[a-z][a-z0-9-]{1,31}$/.test(value.app_id) &&
+    isBoundedString(value.name, 1, 80) &&
+    isApplicationUrl(value.url, value.app_id) &&
+    ["planned", "staging", "available", "maintenance"].includes(
+      String(value.availability)
+    ) &&
+    ["not_started", "active", "archived"].includes(String(value.user_state)) &&
+    isOptionalDateTime(value.first_used_at) &&
+    isOptionalDateTime(value.last_used_at)
+  );
+}
+
+export function isApplicationSummaryList(value: unknown): value is ApplicationSummary[] {
+  return Array.isArray(value) && value.every(isApplicationSummary);
 }

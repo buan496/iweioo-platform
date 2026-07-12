@@ -51,6 +51,7 @@ test("platform OpenAPI contract contains unique operations and required boundari
   const requiredPaths = [
     "/users/me",
     "/users/me/profile",
+    "/users/me/applications",
     "/users/me/consents",
     "/users/me/consents/{purpose}",
     "/users/me/credit-account",
@@ -82,6 +83,12 @@ test("platform OpenAPI contract contains unique operations and required boundari
       (parameter) => parameter.$ref === "#/components/parameters/ConsentIdempotencyKey"
     )
   );
+
+  const applicationSchema = schemas.ApplicationSummary as JsonObject;
+  const applicationProperties = applicationSchema.properties as JsonObject;
+  assert.ok(applicationProperties.availability);
+  assert.ok(applicationProperties.user_state);
+  assert.equal(Object.hasOwn(applicationProperties, "summary"), false);
 });
 
 test("event schema excludes sensitive classification and examples use safe envelopes", () => {

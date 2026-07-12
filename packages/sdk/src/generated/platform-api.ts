@@ -327,12 +327,13 @@ export interface components {
             /** Format: uri */
             url: string;
             /** @enum {unknown} */
-            status: "available" | "maintenance" | "disabled";
+            availability: "planned" | "staging" | "available" | "maintenance";
+            /** @enum {unknown} */
+            user_state: "not_started" | "active" | "archived";
+            /** Format: date-time */
+            first_used_at?: string;
             /** Format: date-time */
             last_used_at?: string;
-            summary?: {
-                [key: string]: unknown;
-            };
         };
         ActivitySummary: {
             /** Format: uuid */

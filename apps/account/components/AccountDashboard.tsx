@@ -8,7 +8,9 @@ import {
   isConsent,
   isConsentBundle,
   isCurrentUser,
+  isApplicationSummaryList,
   isUserProfile,
+  type ApplicationSummary,
   type Consent,
   type ConsentPurpose,
   type ConsentStatus,
@@ -52,6 +54,7 @@ export function AccountDashboard({ locale }: AccountDashboardProps) {
   const [platformUser, setPlatformUser] = useState<CurrentUser | null>(null);
   const [consents, setConsents] = useState<Consent[]>([]);
   const [policies, setPolicies] = useState<ConsentPolicies | null>(null);
+  const [applications, setApplications] = useState<ApplicationSummary[]>([]);
   const [profileForm, setProfileForm] = useState<ProfileForm | null>(null);
   const [platformFailed, setPlatformFailed] = useState(false);
   const [profileState, setProfileState] = useState<"idle" | "saving" | "saved" | "error">("idle");
@@ -76,11 +79,12 @@ export function AccountDashboard({ locale }: AccountDashboardProps) {
     }
     const controller = new AbortController();
     void loadPlatformData(controller.signal)
-      .then(({ user, consentBundle }) => {
+      .then(({ user, consentBundle, applications: loadedApplications }) => {
         setPlatformUser(user);
         setProfileForm(formFromProfile(user.profile));
         setConsents(consentBundle.consents);
         setPolicies(consentBundle.policies);
+        setApplications(loadedApplications);
         setPlatformFailed(false);
       })
       .catch((error: unknown) => {
@@ -104,11 +108,12 @@ export function AccountDashboard({ locale }: AccountDashboardProps) {
   async function retryPlatform() {
     setPlatformFailed(false);
     try {
-      const { user, consentBundle } = await loadPlatformData();
+      const { user, consentBundle, applications: loadedApplications } = await loadPlatformData();
       setPlatformUser(user);
       setProfileForm(formFromProfile(user.profile));
       setConsents(consentBundle.consents);
       setPolicies(consentBundle.policies);
+      setApplications(loadedApplications);
     } catch {
       setPlatformFailed(true);
     }
@@ -308,11 +313,31 @@ export function AccountDashboard({ locale }: AccountDashboardProps) {
                 onChange={(status) => void changeConsent("agent_memory", status)} />
             </div>
           </section>
+
+          <section className="account-panel">
+            <div className="panel-heading">
+              <div><p className="panel-index">04</p><h2>{copy.products}</h2></div>
+              <span className="durable-badge">Registry</span>
+            </div>
+            <p className="panel-intro">{copy.productsIntro}</p>
+            <div className="account-product-list">
+              {applications.length === 0 ? (
+                <p className="account-product-empty">{copy.noProducts}</p>
+              ) : applications.map((application) => (
+                <ApplicationControl
+                  key={application.app_id}
+                  application={application}
+                  locale={locale}
+                  copy={copy}
+                />
+              ))}
+            </div>
+          </section>
         </>
       )}
 
       <section className="account-panel">
-        <div className="panel-heading"><div><p className="panel-index">04</p><h2>{copy.session}</h2></div></div>
+        <div className="panel-heading"><div><p className="panel-index">05</p><h2>{copy.session}</h2></div></div>
         <p className="panel-intro">{copy.sessionIntro}</p>
         <dl className="session-details">
           <div><dt>{copy.application}</dt><dd>account.iweioo.com</dd></div>
@@ -337,16 +362,25 @@ async function loadSession(signal?: AbortSignal): Promise<PublicSession> {
 }
 
 async function loadPlatformData(signal?: AbortSignal) {
-  const [accountResponse, consentResponse] = await Promise.all([
+  const [accountResponse, consentResponse, applicationResponse] = await Promise.all([
     fetch("/api/platform/account", { credentials: "same-origin", cache: "no-store", signal }),
-    fetch("/api/platform/consents", { credentials: "same-origin", cache: "no-store", signal })
+    fetch("/api/platform/consents", { credentials: "same-origin", cache: "no-store", signal }),
+    fetch("/api/platform/applications", { credentials: "same-origin", cache: "no-store", signal })
   ]);
   const user: unknown = await accountResponse.json();
   const consentBundle: unknown = await consentResponse.json();
-  if (!accountResponse.ok || !isCurrentUser(user) || !consentResponse.ok || !isConsentBundle(consentBundle)) {
+  const applications: unknown = await applicationResponse.json();
+  if (
+    !accountResponse.ok ||
+    !isCurrentUser(user) ||
+    !consentResponse.ok ||
+    !isConsentBundle(consentBundle) ||
+    !applicationResponse.ok ||
+    !isApplicationSummaryList(applications)
+  ) {
     throw new Error("Platform account response is invalid");
   }
-  return { user, consentBundle };
+  return { user, consentBundle, applications };
 }
 
 function ProfileInput({ label, value, onChange, required = false, maxLength }: {
@@ -368,4 +402,52 @@ function ConsentControl({ title, body, consent, policy, busy, failed, copy, onCh
       <button type="button" disabled={busy} onClick={() => onChange(granted ? "revoked" : "granted")}>
         {busy ? copy.saving : granted ? copy.revoke : copy.grant}
       </button></div></article>;
+}
+
+function ApplicationControl({ application, locale, copy }: {
+  application: ApplicationSummary;
+  locale: AccountLocale;
+  copy: (typeof accountCopy)[AccountLocale];
+}) {
+  const availability = {
+    planned: copy.productPlanned,
+    staging: copy.productStaging,
+    available: copy.productAvailable,
+    maintenance: copy.productMaintenance
+  }[application.availability];
+  const userState = {
+    not_started: copy.productNotStarted,
+    active: copy.productActive,
+    archived: copy.productArchived
+  }[application.user_state];
+  const lastUsed = application.last_used_at
+    ? new Intl.DateTimeFormat(locale === "zh" ? "zh-CN" : "en", {
+        dateStyle: "medium",
+        timeStyle: "short"
+      }).format(new Date(application.last_used_at))
+    : copy.productNeverUsed;
+  const launchable = application.availability === "available";
+
+  return (
+    <article className="account-product-row">
+      <div>
+        <div className="account-product-title">
+          <h3>{application.name}</h3>
+          <span>{application.app_id}</span>
+        </div>
+        <p>{copy.productState}: {userState}</p>
+        <small>{copy.productLastUsed}: {lastUsed}</small>
+      </div>
+      <div className="account-product-action">
+        <span className={`product-availability product-availability-${application.availability}`}>
+          {availability}
+        </span>
+        {launchable ? (
+          <a href={application.url}>{copy.openProduct}</a>
+        ) : (
+          <span className="product-link-disabled" aria-disabled="true">{copy.productUnavailable}</span>
+        )}
+      </div>
+    </article>
+  );
 }

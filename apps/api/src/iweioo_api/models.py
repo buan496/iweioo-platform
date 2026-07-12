@@ -168,4 +168,66 @@ class AuditEvent(Base):
     occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
 
+class ApplicationRegistration(Base):
+    __tablename__ = "application_registrations"
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('planned', 'staging', 'available', 'maintenance', 'disabled')",
+            name="ck_application_registrations_status",
+        ),
+    )
+
+    app_id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    display_name: Mapped[str] = mapped_column(String(80), nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False)
+    public_base_url: Mapped[str] = mapped_column(String(255), nullable=False)
+    manifest_schema_version: Mapped[str] = mapped_column(String(20), nullable=False)
+    manifest_checksum: Mapped[str] = mapped_column(String(64), nullable=False)
+    manifest_payload: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+    version: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=utc_now,
+        onupdate=utc_now,
+    )
+
+
+class UserApplicationState(Base):
+    __tablename__ = "user_app_states"
+    __table_args__ = (
+        CheckConstraint(
+            "state IN ('active', 'archived')",
+            name="ck_user_app_states_state",
+        ),
+        CheckConstraint(
+            "last_used_at >= first_used_at",
+            name="ck_user_app_states_time_order",
+        ),
+        Index("ix_user_app_states_app_id", "app_id"),
+        Index("ix_user_app_states_user_last_used", "user_id", "last_used_at"),
+    )
+
+    user_id: Mapped[UUID] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    app_id: Mapped[str] = mapped_column(
+        String(32),
+        ForeignKey("application_registrations.app_id", ondelete="RESTRICT"),
+        primary_key=True,
+    )
+    state: Mapped[str] = mapped_column(String(16), nullable=False)
+    first_used_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    last_used_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    version: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=utc_now,
+        onupdate=utc_now,
+    )
+
+
 JsonObject = dict[str, Any]

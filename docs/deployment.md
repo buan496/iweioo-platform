@@ -27,6 +27,7 @@ export the variables from `apps/api/.env.example`, and run:
 
 ```bash
 alembic -c apps/api/alembic.ini upgrade head
+iweioo-api sync-applications --manifest-dir contracts/applications
 iweioo-api
 ```
 
@@ -47,6 +48,8 @@ exactly. `NEXT_PUBLIC_ACCOUNT_URL` must resolve to the account HTTPS origin.
 The Account BFF must reach the private Platform API, and the API must use a
 dedicated PostgreSQL credential plus HTTPS issuer/JWKS endpoints. Database
 migrations run as a release step before traffic, never from web or API startup.
+Application manifests synchronize after migrations and before traffic; the
+sync is idempotent and does not prune missing registrations.
 The local Compose profile, `start-dev`,
 Mailpit, loopback ports, bootstrap administrator, and localhost client routes
 must never be reused in staging or production.
