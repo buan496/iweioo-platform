@@ -8,7 +8,15 @@ import pytest
 from sqlalchemy import func, inspect, select
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
-from iweioo_api.models import AuditEvent, ConsentEvent, User, UserProfile
+from iweioo_api.models import (
+    ApplicationRegistration,
+    AuditEvent,
+    ConsentEvent,
+    User,
+    UserApplicationState,
+    UserProfile,
+    utc_now,
+)
 from iweioo_api.modules.account.schemas import ConsentUpdate, ProfilePatch
 from iweioo_api.modules.account.service import (
     apply_profile_patch,
@@ -16,16 +24,19 @@ from iweioo_api.modules.account.service import (
     list_consents,
     set_consent,
 )
+from iweioo_api.modules.applications.service import list_user_applications
 from iweioo_api.modules.auth.models import IdentityClaims
 
 EXPECTED_TABLES = {
     "alembic_version",
+    "application_registrations",
     "audit_events",
     "consent_events",
     "consents",
     "identity_links",
     "user_profiles",
     "users",
+    "user_app_states",
 }
 
 
@@ -88,6 +99,20 @@ def test_postgres_account_round_trip() -> None:
                     "postgres-consent-request",
                 )
                 assert granted.status == "granted"
+                registrations = await session.scalar(
+                    select(func.count()).select_from(ApplicationRegistration)
+                )
+                assert registrations == 2
+                now = utc_now()
+                session.add(
+                    UserApplicationState(
+                        user_id=user_id,
+                        app_id="interview",
+                        state="active",
+                        first_used_at=now,
+                        last_used_at=now,
+                    )
+                )
 
             async with sessions.begin() as session:
                 user = await session.get(User, user_id)
@@ -109,6 +134,11 @@ def test_postgres_account_round_trip() -> None:
                         AuditEvent.actor_user_id == user_id
                     )
                 ) == 2
+                applications = await list_user_applications(session, user_id)
+                assert [(item.app_id, item.user_state) for item in applications] == [
+                    ("defense", "not_started"),
+                    ("interview", "active"),
+                ]
         finally:
             await engine.dispose()
 

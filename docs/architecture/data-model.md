@@ -40,6 +40,15 @@ not that consent was implied. Profile and consent mutations also create
 privacy-safe `audit_events` containing changed field names rather than field
 values.
 
+The second account-data slice implements `application_registrations` and
+`user_app_states`. Checked-in integration manifests are validated completely
+before an explicit release command synchronizes canonical snapshots and
+checksums into PostgreSQL. A registration's availability is operational state;
+the user state is separate and remains `not_started` until a future
+authenticated product integration records real use. Disabled registrations are
+not user-visible, missing manifest files are never treated as deletion, and the
+registry contains no client secrets.
+
 School, major, graduation year, and career goals are optional. The first
 release does not implement organizations, classes, or institutional tenants.
 

@@ -176,8 +176,11 @@ jobs:
             sleep 2
           done
           alembic -c apps/api/alembic.ini upgrade head
+          iweioo-api sync-applications --manifest-dir contracts/applications
+          python -m pytest apps/api/tests/test_postgres.py
           alembic -c apps/api/alembic.ini downgrade base
           alembic -c apps/api/alembic.ini upgrade head
+          iweioo-api sync-applications --manifest-dir contracts/applications
           python -m pytest apps/api/tests/test_postgres.py
 
       - name: Show Platform PostgreSQL logs on failure

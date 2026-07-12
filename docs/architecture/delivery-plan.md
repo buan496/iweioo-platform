@@ -91,7 +91,7 @@ separate portal and account application sessions for the same verified global
 subject. Platform API calls use a dedicated audience, signed-token validation,
 server-only forwarding, PostgreSQL migrations, versioned consent evidence, and
 privacy-safe audit records. Multi-device session management, privileged MFA,
-app registry, product-subdomain BFFs, and staging evidence remain before the
+product-subdomain BFFs, and staging evidence remain before the
 Stage 2 exit is met.
 
 ### Stage 3: credits, usage, and product contracts

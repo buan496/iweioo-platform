@@ -11,7 +11,7 @@
 当前版本已完成 Stage 1 工程基础，并进入 Stage 2 身份与账户数据接入，不代表产品已经开放：
 
 - `iweioo.com`：双语平台门户与内容栏目；
-- `account.iweioo.com`：独立账户中心，当前已完成身份、持久化资料、版本化授权与当前会话；
+- `account.iweioo.com`：独立账户中心，当前已完成身份、持久化资料、版本化授权、产品注册表与当前会话；
 - `interview.iweioo.com`：大厂面试训练，状态为建设中；
 - `defense.iweioo.com`：论文答辩 Agent，状态为建设中；
 - 统一身份：本地 Keycloak、共享 OIDC BFF、门户与账户中心单点登录已实现；生产 `auth.iweioo.com` 仍属于后续部署；
@@ -58,10 +58,11 @@ Python 3.12：
 ```bash
 python -m pip install -e "apps/api[dev]" -e "apps/worker"
 alembic -c apps/api/alembic.ini upgrade head
+iweioo-api sync-applications --manifest-dir contracts/applications
 iweioo-api
 ```
 
-平台 API 使用独立 PostgreSQL 保存账户资料与授权证据，健康端点为
+平台 API 使用独立 PostgreSQL 保存账户资料、授权证据、应用注册表与用户产品状态，健康端点为
 `http://127.0.0.1:8000/v1/health/live` 和 `/v1/health/ready`。本地数据库默认仅绑定
 `127.0.0.1:5433`；配置模板和启动说明见 [`apps/api/.env.example`](apps/api/.env.example)
 与 [`deploy/compose/README.md`](deploy/compose/README.md)。Worker 可用
@@ -115,7 +116,7 @@ entered Stage 2 identity and account-data integration. It is not a public-produc
 
 - `iweioo.com`: bilingual platform portal and content;
 - `account.iweioo.com`: independently deployable account center with identity,
-  durable profiles, versioned consent, and current-session controls;
+  durable profiles, versioned consent, registered products, and current-session controls;
 - `interview.iweioo.com`: interview training, marked in development;
 - `defense.iweioo.com`: thesis-defense agent, marked in development;
 - identity: local Keycloak, the shared OIDC BFF, and portal/account SSO are
@@ -163,11 +164,13 @@ With Python 3.12:
 ```bash
 python -m pip install -e "apps/api[dev]" -e "apps/worker"
 alembic -c apps/api/alembic.ini upgrade head
+iweioo-api sync-applications --manifest-dir contracts/applications
 iweioo-api
 ```
 
-The Platform API stores account profiles and consent evidence in a dedicated
-PostgreSQL database and exposes `/v1/health/live` and `/v1/health/ready`. The
+The Platform API stores account profiles, consent evidence, the application
+registry, and per-user product state in a dedicated PostgreSQL database and
+exposes `/v1/health/live` and `/v1/health/ready`. The
 local database binds to `127.0.0.1:5433` only; see
 [`apps/api/.env.example`](apps/api/.env.example) and
 [`deploy/compose/README.md`](deploy/compose/README.md). Use

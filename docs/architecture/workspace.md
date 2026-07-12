@@ -72,7 +72,11 @@ uses server-side BFF routes to read and update Platform API profile and consent
 records. The Platform API validates the Account client token against cached
 JWKS and binds every query to its UUID subject. PostgreSQL stores the user
 projection, identity link, profile, current consent, append-only consent
-evidence, and privacy-safe audit metadata. Browser storage is not a data source.
+evidence, privacy-safe audit metadata, application registrations, and isolated
+per-user application state. Manifest synchronization is an explicit deployment
+step. Availability and user state are separate, so a planned product or missing
+activity row cannot be presented as usable or previously used. Browser storage
+is not a data source.
 
 ## Migration and rollback
 

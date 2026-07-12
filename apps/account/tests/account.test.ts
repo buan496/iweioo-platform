@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { accountCopy, accountLocales, isAccountLocale } from "../lib/i18n";
-import { isConsentBundle, isCurrentUser } from "../lib/platform-public";
+import {
+  isApplicationSummaryList,
+  isConsentBundle,
+  isCurrentUser
+} from "../lib/platform-public";
 
 test("account center exposes only supported locales", () => {
   assert.deepEqual(accountLocales, ["zh", "en"]);
@@ -60,6 +64,32 @@ test("platform response guards reject incomplete account data", () => {
         growth_profile: "beta-2026-07-10"
       }
     }),
+    false
+  );
+  assert.equal(
+    isApplicationSummaryList([
+      {
+        app_id: "interview",
+        name: "iweioo Interview",
+        url: "https://interview.iweioo.com/",
+        availability: "planned",
+        user_state: "not_started",
+        first_used_at: null,
+        last_used_at: null
+      }
+    ]),
+    true
+  );
+  assert.equal(
+    isApplicationSummaryList([
+      {
+        app_id: "interview",
+        name: "iweioo Interview",
+        url: "https://attacker.example/",
+        availability: "available",
+        user_state: "active"
+      }
+    ]),
     false
   );
 });

@@ -115,7 +115,7 @@
       "get": {
         "tags": ["Account"],
         "operationId": "listCurrentUserApplications",
-        "security": [{ "userOidc": ["openid", "profile"] }],
+        "security": [{ "userOidc": ["openid", "profile", "email"] }],
         "responses": {
           "200": {
             "description": "Applications visible to the current user.",
@@ -617,14 +617,17 @@
       "ApplicationSummary": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["app_id", "name", "url", "status"],
+        "required": ["app_id", "name", "url", "availability", "user_state"],
         "properties": {
           "app_id": { "$ref": "#/components/schemas/AppId" },
-          "name": { "type": "string", "maxLength": 80 },
+          "name": { "type": "string", "minLength": 1, "maxLength": 80 },
           "url": { "type": "string", "format": "uri" },
-          "status": { "enum": ["available", "maintenance", "disabled"] },
-          "last_used_at": { "type": "string", "format": "date-time" },
-          "summary": { "type": "object", "additionalProperties": true }
+          "availability": {
+            "enum": ["planned", "staging", "available", "maintenance"]
+          },
+          "user_state": { "enum": ["not_started", "active", "archived"] },
+          "first_used_at": { "type": "string", "format": "date-time" },
+          "last_used_at": { "type": "string", "format": "date-time" }
         }
       },
       "ActivitySummary": {

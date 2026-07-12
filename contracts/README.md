@@ -19,6 +19,9 @@ and generated SDKs.
 - Sensitive raw content is forbidden in integration events.
 - Generated code never replaces the checked-in source contract.
 - Application manifests contain identifiers and public/internal routes, never credentials.
+- Checked-in manifests are validated and synchronized into the runtime
+  application registry as an explicit release step; missing files never imply
+  runtime deletion.
 - User endpoints require the dedicated Platform API audience and declared
   scopes; browsers call them through an application BFF rather than holding
   bearer tokens.

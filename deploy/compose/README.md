@@ -8,7 +8,8 @@ single-server production profile from ADR 0005.
 `platform-data.compose.yml` is a separate local PostgreSQL profile for durable
 Platform API data. It binds PostgreSQL to loopback port `5433`, uses a distinct
 database, credential, and volume, and is exercised by CI through an empty
-upgrade, full downgrade, second upgrade, and schema inspection. It is also not
+upgrade, deterministic application-manifest sync, PostgreSQL query smoke, full
+downgrade, second upgrade, second sync, and another query smoke. It is also not
 a production Compose profile.
 
 Local safeguards:
