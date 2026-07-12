@@ -2,7 +2,8 @@
 
 `identity.compose.yml` is the Stage 2 local identity profile. It contains
 Keycloak, its dedicated PostgreSQL database, Mailpit for intercepted test
-email, and an ephemeral Redis instance for app-isolated BFF sessions. It is not the
+email, and an ephemeral Redis instance for app-isolated BFF records plus the
+shared user session index. It is not the
 single-server production profile from ADR 0005.
 
 `platform-data.compose.yml` is a separate local PostgreSQL profile for durable
@@ -21,6 +22,8 @@ Local safeguards:
   publishing works on Docker Desktop and GitHub-hosted runners;
 - Redis requires a unique password, uses a tmpfs with persistence disabled,
   and caps evictable TTL data at 192 MiB inside a 256 MiB container limit;
+- CI executes the real cross-application session create/list/revoke/cap Lua
+  paths against Redis rather than validating configuration alone;
 - images use explicit patch versions;
 - passwords are required from an ignored local env file;
 - the PostgreSQL 18 volume uses `/var/lib/postgresql`, matching the official

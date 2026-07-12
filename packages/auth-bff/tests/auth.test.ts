@@ -6,6 +6,8 @@ import {
   transactionCookieOptions
 } from "../src/config";
 import {
+  describeSessionDevice,
+  isManagedSessionList,
   isOidcTransaction,
   isBffSession,
   isPublicSession,
@@ -47,6 +49,7 @@ test("local config derives exact callback and app-scoped cookie names", () => {
     priority: "high"
   });
   assert.equal(transactionCookieOptions(config).maxAge, 600);
+  assert.equal(config.maxSessionsPerUser, 20);
 });
 
 test("separate local apps cannot collide while production uses host-only cookie prefixes", () => {
@@ -88,6 +91,10 @@ test("config rejects unsafe identifiers, origins, and unprotected Redis", () => 
   assert.throws(
     () => loadAuthConfig({ ...localEnvironment, BFF_REDIS_URL: "redis://127.0.0.1:6379" }),
     /include a password/
+  );
+  assert.throws(
+    () => loadAuthConfig({ ...localEnvironment, AUTH_MAX_SESSIONS_PER_USER: "1" }),
+    /AUTH_MAX_SESSIONS_PER_USER/
   );
   assert.throws(
     () =>
@@ -149,7 +156,7 @@ test("only verified OIDC identities become public session users", () => {
   assert.throws(
     () =>
       verifiedUserFromClaims({
-        sub: "subject",
+        sub: "9fe7173c-7644-42c4-a3d6-e912257e910e",
         email: "student@example.com",
         email_verified: false
       }),
@@ -174,14 +181,22 @@ test("Redis records and public DTOs require complete bounded models", () => {
 
   assert.equal(
     isBffSession({
-      user: { platformUserId: "subject", email: "student@example.com", displayName: "Student" },
+      recordVersion: 2,
+      sessionId: "11111111-1111-4111-8111-111111111111",
+      appId: "portal",
+      user: {
+        platformUserId: "9fe7173c-7644-42c4-a3d6-e912257e910e",
+        email: "student@example.com",
+        displayName: "Student"
+      },
+      device: { category: "desktop", operatingSystem: "Windows" },
       accessToken: "access",
       refreshToken: "refresh",
       idToken: "id",
       accessTokenExpiresAt: new Date().toISOString(),
       csrfToken: "csrf",
       createdAt: new Date().toISOString(),
-      expiresAt: new Date().toISOString()
+      expiresAt: new Date(Date.now() + 60_000).toISOString()
     }),
     true
   );
@@ -190,11 +205,38 @@ test("Redis records and public DTOs require complete bounded models", () => {
   assert.equal(
     isPublicSession({
       authenticated: true,
-      user: { platformUserId: "subject", email: "student@example.com", displayName: "Student" },
+      user: {
+        platformUserId: "9fe7173c-7644-42c4-a3d6-e912257e910e",
+        email: "student@example.com",
+        displayName: "Student"
+      },
       csrfToken: "csrf",
       expiresAt: new Date().toISOString()
     }),
     true
   );
   assert.equal(isPublicSession({ authenticated: true, accessToken: "secret" }), false);
+  assert.deepEqual(
+    describeSessionDevice(
+      "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit Mobile"
+    ),
+    { category: "mobile", operatingSystem: "iOS" }
+  );
+  assert.equal(
+    isManagedSessionList([
+      {
+        sessionId: "22222222-2222-4222-8222-222222222222",
+        appId: "account",
+        device: { category: "desktop", operatingSystem: "macOS" },
+        createdAt: new Date().toISOString(),
+        expiresAt: new Date(Date.now() + 60_000).toISOString(),
+        current: true
+      }
+    ]),
+    true
+  );
+  assert.equal(
+    isManagedSessionList([{ sessionId: "not-a-session", accessToken: "secret" }]),
+    false
+  );
 });

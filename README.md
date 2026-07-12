@@ -11,7 +11,7 @@
 当前版本已完成 Stage 1 工程基础，并进入 Stage 2 身份与账户数据接入，不代表产品已经开放：
 
 - `iweioo.com`：双语平台门户与内容栏目；
-- `account.iweioo.com`：独立账户中心，当前已完成身份、持久化资料、版本化授权、产品注册表与当前会话；
+- `account.iweioo.com`：独立账户中心，当前已完成身份、持久化资料、版本化授权、产品注册表与多设备会话管理；
 - `interview.iweioo.com`：大厂面试训练，状态为建设中；
 - `defense.iweioo.com`：论文答辩 Agent，状态为建设中；
 - 统一身份：本地 Keycloak、共享 OIDC BFF、门户与账户中心单点登录已实现；生产 `auth.iweioo.com` 仍属于后续部署；
@@ -71,7 +71,8 @@ iweioo-api
 本地统一身份环境使用 Keycloak、独立 PostgreSQL、Mailpit 和仅保存临时
 BFF 会话的 Redis，不会发送真实邮件。门户与账户中心通过共享服务端包实现
 Authorization Code + PKCE、服务端令牌存储、邮箱验证、统一登录和 CSRF
-防护注销，但各自保留独立客户端、Cookie 与 Redis 命名空间。账户浏览器不会接触
+防护注销，但各自保留独立客户端、Cookie 与 Redis 记录命名空间；共享的用户会话索引
+允许账户中心列出和撤销各应用的 BFF 会话。账户浏览器不会接触
 平台 API Bearer Token，所有账户数据请求都由账户 BFF 转发。配置与启动说明
 见 [`deploy/keycloak/README.md`](deploy/keycloak/README.md)。首次启动前必须从
 模板创建被忽略的身份密码文件和两个应用环境文件。
@@ -116,7 +117,7 @@ entered Stage 2 identity and account-data integration. It is not a public-produc
 
 - `iweioo.com`: bilingual platform portal and content;
 - `account.iweioo.com`: independently deployable account center with identity,
-  durable profiles, versioned consent, registered products, and current-session controls;
+  durable profiles, versioned consent, registered products, and multi-device session controls;
 - `interview.iweioo.com`: interview training, marked in development;
 - `defense.iweioo.com`: thesis-defense agent, marked in development;
 - identity: local Keycloak, the shared OIDC BFF, and portal/account SSO are
@@ -180,7 +181,9 @@ The local identity environment uses Keycloak, a dedicated PostgreSQL database,
 Mailpit, and Redis for ephemeral BFF state without sending real email. The
 portal and account center use the shared server-only BFF for Authorization Code
 with PKCE, server-side token storage, verified email, SSO, and CSRF-protected
-logout while retaining separate clients, cookies, and Redis namespaces. The
+logout while retaining separate clients, cookies, and Redis record namespaces.
+A shared user-session index lets the account center list and revoke BFF sessions
+across participating applications. The
 account browser never receives the Platform API bearer token; its BFF proxies
 all account-data requests. See
 [`deploy/keycloak/README.md`](deploy/keycloak/README.md); create the ignored

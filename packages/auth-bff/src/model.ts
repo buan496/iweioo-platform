@@ -16,8 +16,17 @@ export type AuthenticatedUser = {
   displayName: string;
 };
 
+export type SessionDevice = {
+  category: "desktop" | "mobile" | "tablet" | "unknown";
+  operatingSystem: "Windows" | "macOS" | "Linux" | "Android" | "iOS" | "Unknown";
+};
+
 export type BffSession = {
+  recordVersion: 2;
+  sessionId: string;
+  appId: string;
   user: AuthenticatedUser;
+  device: SessionDevice;
   accessToken: string;
   refreshToken: string;
   idToken: string;
@@ -25,6 +34,15 @@ export type BffSession = {
   csrfToken: string;
   createdAt: string;
   expiresAt: string;
+};
+
+export type ManagedSession = {
+  sessionId: string;
+  appId: string;
+  device: SessionDevice;
+  createdAt: string;
+  expiresAt: string;
+  current: boolean;
 };
 
 export type PublicSession =
@@ -44,6 +62,34 @@ function hasStrings(value: Record<string, unknown>, keys: string[]): boolean {
   return keys.every((key) => typeof value[key] === "string" && value[key].length > 0);
 }
 
+function isDateTime(value: unknown): value is string {
+  return typeof value === "string" && Number.isFinite(Date.parse(value));
+}
+
+export function isSessionId(value: unknown): value is string {
+  return (
+    typeof value === "string" &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
+  );
+}
+
+function isPlatformUserId(value: unknown): value is string {
+  return (
+    typeof value === "string" &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
+  );
+}
+
+export function isSessionDevice(value: unknown): value is SessionDevice {
+  return (
+    isRecord(value) &&
+    ["desktop", "mobile", "tablet", "unknown"].includes(String(value.category)) &&
+    ["Windows", "macOS", "Linux", "Android", "iOS", "Unknown"].includes(
+      String(value.operatingSystem)
+    )
+  );
+}
+
 export function isOidcTransaction(value: unknown): value is OidcTransaction {
   if (!isRecord(value)) {
     return false;
@@ -60,7 +106,13 @@ export function isBffSession(value: unknown): value is BffSession {
     return false;
   }
   return (
+    value.recordVersion === 2 &&
+    isSessionId(value.sessionId) &&
+    typeof value.appId === "string" &&
+    /^[a-z][a-z0-9-]{1,31}$/.test(value.appId) &&
     hasStrings(value.user, ["platformUserId", "email", "displayName"]) &&
+    isPlatformUserId(value.user.platformUserId) &&
+    isSessionDevice(value.device) &&
     hasStrings(value, [
       "accessToken",
       "refreshToken",
@@ -69,12 +121,40 @@ export function isBffSession(value: unknown): value is BffSession {
       "csrfToken",
       "createdAt",
       "expiresAt"
-    ])
+    ]) &&
+    isDateTime(value.accessTokenExpiresAt) &&
+    isDateTime(value.createdAt) &&
+    isDateTime(value.expiresAt) &&
+    Date.parse(value.expiresAt as string) > Date.parse(value.createdAt as string)
   );
 }
 
+export function describeSessionDevice(userAgent: string | null): SessionDevice {
+  const normalized = (userAgent ?? "").slice(0, 512).toLowerCase();
+  const operatingSystem: SessionDevice["operatingSystem"] =
+    /iphone|ipad|ipod/.test(normalized)
+      ? "iOS"
+      : /android/.test(normalized)
+        ? "Android"
+        : /windows/.test(normalized)
+          ? "Windows"
+          : /macintosh|mac os x/.test(normalized)
+            ? "macOS"
+            : /linux/.test(normalized)
+              ? "Linux"
+              : "Unknown";
+  const category: SessionDevice["category"] = /ipad|tablet/.test(normalized)
+    ? "tablet"
+    : /mobile|iphone|ipod|android/.test(normalized)
+      ? "mobile"
+      : normalized
+        ? "desktop"
+        : "unknown";
+  return { category, operatingSystem };
+}
+
 export function verifiedUserFromClaims(claims: Record<string, unknown>): AuthenticatedUser {
-  if (typeof claims.sub !== "string" || !claims.sub) {
+  if (!isPlatformUserId(claims.sub)) {
     throw new Error("OIDC ID token is missing a subject");
   }
   if (claims.email_verified !== true) {
@@ -106,6 +186,26 @@ export function isPublicSession(value: unknown): value is PublicSession {
   return (
     isRecord(value.user) &&
     hasStrings(value.user, ["platformUserId", "email", "displayName"]) &&
-    hasStrings(value, ["csrfToken", "expiresAt"])
+    isPlatformUserId(value.user.platformUserId) &&
+    hasStrings(value, ["csrfToken", "expiresAt"]) &&
+    isDateTime(value.expiresAt)
   );
+}
+
+export function isManagedSession(value: unknown): value is ManagedSession {
+  return (
+    isRecord(value) &&
+    isSessionId(value.sessionId) &&
+    typeof value.appId === "string" &&
+    /^[a-z][a-z0-9-]{1,31}$/.test(value.appId) &&
+    isSessionDevice(value.device) &&
+    isDateTime(value.createdAt) &&
+    isDateTime(value.expiresAt) &&
+    Date.parse(value.expiresAt) > Date.parse(value.createdAt) &&
+    typeof value.current === "boolean"
+  );
+}
+
+export function isManagedSessionList(value: unknown): value is ManagedSession[] {
+  return Array.isArray(value) && value.every(isManagedSession);
 }

@@ -21,6 +21,13 @@ test("consent copy is explicit that optional sharing is not granted", () => {
   assert.match(accountCopy.en.profileIntro, /Platform API and PostgreSQL/);
 });
 
+test("session copy explains the cross-device Keycloak boundary", () => {
+  assert.match(accountCopy.zh.sessionScope, /Keycloak/);
+  assert.match(accountCopy.zh.sessionScope, /其他设备/);
+  assert.match(accountCopy.en.sessionScope, /Keycloak/);
+  assert.match(accountCopy.en.sessionScope, /other devices/);
+});
+
 test("platform response guards reject incomplete account data", () => {
   assert.equal(
     isCurrentUser({

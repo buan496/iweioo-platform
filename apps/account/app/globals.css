@@ -564,17 +564,121 @@ dd {
   color: var(--faint);
 }
 
+.session-scope-note {
+  margin: -8px 0 22px;
+  padding: 14px 16px;
+  border-left: 2px solid rgba(54, 197, 240, 0.48);
+  background: rgba(54, 197, 240, 0.045);
+  color: var(--faint);
+  font-size: 0.78rem;
+  line-height: 1.65;
+}
+
+.managed-session-list {
+  display: grid;
+  gap: 12px;
+}
+
+.managed-session-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
+  padding: 22px 24px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.024);
+}
+
+.managed-session-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.managed-session-title h3,
+.managed-session-row p {
+  margin: 0;
+}
+
+.managed-session-title span {
+  padding: 4px 8px;
+  border: 1px solid rgba(85, 209, 135, 0.28);
+  border-radius: 999px;
+  color: var(--green);
+  font-size: 0.68rem;
+}
+
+.managed-session-row p {
+  margin-top: 8px;
+  color: var(--muted);
+}
+
+.managed-session-row small {
+  display: block;
+  margin-top: 5px;
+  color: var(--faint);
+}
+
+.managed-session-row button,
+.session-state-error button {
+  min-height: 40px;
+  padding: 0 16px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.managed-session-row button:disabled {
+  cursor: wait;
+  opacity: 0.58;
+}
+
+.current-session-note {
+  color: var(--faint);
+  font-size: 0.76rem;
+}
+
+.session-revoke-error {
+  color: #ff8e8e !important;
+}
+
+.session-state-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 18px 20px;
+  border: 1px solid rgba(255, 142, 142, 0.22);
+  border-radius: var(--radius);
+  color: #ffb1b1;
+}
+
+.session-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 28px;
+}
+
 .session-details {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .logout-form {
-  margin-top: 28px;
+  margin: 0;
 }
 
 .logout-form button {
   border-color: rgba(255, 255, 255, 0.18);
   background: transparent;
+}
+
+.logout-all-form button {
+  border-color: rgba(255, 142, 142, 0.3);
+  color: #ffb1b1;
 }
 
 .account-footer {
@@ -661,6 +765,11 @@ dd {
   }
 
   .account-product-row {
+    display: grid;
+  }
+
+  .managed-session-row,
+  .session-state-error {
     display: grid;
   }
 

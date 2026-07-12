@@ -11,7 +11,8 @@
   "scripts": {
     "lint": "eslint . --max-warnings=0",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "test": "tsx --test tests/*.test.ts"
+    "test": "tsx --test tests/*.test.ts",
+    "test:session-store": "tsx scripts/session-store-smoke.ts"
   },
   "dependencies": {
     "openid-client": "^6.8.4",
