@@ -3,7 +3,8 @@
 This directory contains machine-readable contracts shared by iweioo products
 and generated SDKs.
 
-- `openapi/platform-api.json`: platform user and service HTTP contract.
+- `openapi/platform-api.json`: Platform API health, current-user profile, and
+  versioned consent HTTP contract.
 - `applications/application-manifest.schema.json`: product onboarding manifest schema.
 - `applications/interview.json` and `applications/defense.json`: planned product boundaries.
 - `events/event-envelope.schema.json`: integration event envelope.
@@ -18,6 +19,9 @@ and generated SDKs.
 - Sensitive raw content is forbidden in integration events.
 - Generated code never replaces the checked-in source contract.
 - Application manifests contain identifiers and public/internal routes, never credentials.
+- User endpoints require the dedicated Platform API audience and declared
+  scopes; browsers call them through an application BFF rather than holding
+  bearer tokens.
 
 The contract tests parse every JSON document and check required architecture
 invariants. The TypeScript SDK types are generated from the OpenAPI source with

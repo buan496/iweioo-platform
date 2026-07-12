@@ -51,6 +51,10 @@ function sessionKey(config: AuthConfig, handle: string): string {
   return `iweioo:${config.appId}:session:${hashHandle(handle)}`;
 }
 
+function refreshLockKey(config: AuthConfig, handle: string): string {
+  return `iweioo:${config.appId}:session-refresh:${hashHandle(handle)}`;
+}
+
 async function createRecord(
   config: AuthConfig,
   key: string,
@@ -122,4 +126,39 @@ export async function getBffSession(
 
 export async function deleteBffSession(config: AuthConfig, handle: string): Promise<void> {
   await (await redis(config)).del(sessionKey(config, handle));
+}
+
+export async function replaceBffSession(
+  config: AuthConfig,
+  handle: string,
+  session: BffSession
+): Promise<boolean> {
+  const result = await (await redis(config)).set(sessionKey(config, handle), JSON.stringify(session), {
+    KEEPTTL: true,
+    XX: true
+  });
+  return result === "OK";
+}
+
+export async function acquireSessionRefreshLock(
+  config: AuthConfig,
+  handle: string,
+  owner: string
+): Promise<boolean> {
+  const result = await (await redis(config)).set(refreshLockKey(config, handle), owner, {
+    EX: 10,
+    NX: true
+  });
+  return result === "OK";
+}
+
+export async function releaseSessionRefreshLock(
+  config: AuthConfig,
+  handle: string,
+  owner: string
+): Promise<void> {
+  await (await redis(config)).eval(
+    "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end",
+    { keys: [refreshLockKey(config, handle)], arguments: [owner] }
+  );
 }

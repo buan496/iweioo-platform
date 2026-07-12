@@ -85,11 +85,13 @@ without shared parent-domain cookies.
 
 Current slice: the local identity provider, reusable OIDC BFF package, portal
 and account BFF routes, verified-user callbacks, app-isolated Redis sessions,
-safe session DTOs, RP-initiated identity-provider logout, and the account-center foundation are
-implemented. A real local smoke verified that one credential login produced
+safe session DTOs, RP-initiated identity-provider logout, the account center,
+and durable profile/consent APIs are implemented. A real local smoke verified that one credential login produced
 separate portal and account application sessions for the same verified global
-subject. Durable profile/consent APIs, multi-device session management,
-privileged MFA, product-subdomain BFFs, and staging evidence remain before the
+subject. Platform API calls use a dedicated audience, signed-token validation,
+server-only forwarding, PostgreSQL migrations, versioned consent evidence, and
+privacy-safe audit records. Multi-device session management, privileged MFA,
+app registry, product-subdomain BFFs, and staging evidence remain before the
 Stage 2 exit is met.
 
 ### Stage 3: credits, usage, and product contracts

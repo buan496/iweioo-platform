@@ -5,6 +5,12 @@ Keycloak, its dedicated PostgreSQL database, Mailpit for intercepted test
 email, and an ephemeral Redis instance for app-isolated BFF sessions. It is not the
 single-server production profile from ADR 0005.
 
+`platform-data.compose.yml` is a separate local PostgreSQL profile for durable
+Platform API data. It binds PostgreSQL to loopback port `5433`, uses a distinct
+database, credential, and volume, and is exercised by CI through an empty
+upgrade, full downgrade, second upgrade, and schema inspection. It is also not
+a production Compose profile.
+
 Local safeguards:
 
 - Keycloak, Mailpit UI, and Redis ports bind to `127.0.0.1` only;
@@ -32,7 +38,8 @@ Until Renovate is evaluated and adopted for Compose image updates:
 
 1. review upstream image release notes and security advisories at least monthly;
 2. update pinned image tags in a dedicated pull request;
-3. run `npm run identity:validate` and the `Identity Smoke` CI job before merge;
+3. run `npm run identity:validate`, `npm run platform-data:validate`, and both
+   data-profile smoke jobs before merge;
 4. record any migration, rollback, or compatibility notes in that pull request.
 
 Do not replace pinned image tags with floating tags such as `latest`.

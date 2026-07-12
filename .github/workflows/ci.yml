@@ -58,8 +58,10 @@ jobs:
       - name: Install Python services
         run: python -m pip install -e "apps/api[dev]" -e "apps/worker"
 
-      - name: Validate identity configuration
-        run: npm run identity:validate
+      - name: Validate local service configurations
+        run: |
+          npm run identity:validate
+          npm run platform-data:validate
 
       - name: Lint
         run: npm run lint
@@ -133,3 +135,55 @@ jobs:
       - name: Stop local identity profile
         if: always()
         run: docker compose --file "$IDENTITY_COMPOSE_FILE" down --volumes --remove-orphans
+
+  platform-data-smoke:
+    name: Platform Data Smoke
+    runs-on: ubuntu-latest
+    env:
+      PLATFORM_COMPOSE_FILE: deploy/compose/platform-data.compose.yml
+      PLATFORM_DB_PASSWORD: not-a-secret
+      PLATFORM_DATABASE_URL: postgresql+asyncpg://iweioo_platform:not-a-secret@127.0.0.1:5433/iweioo_platform
+      TEST_POSTGRES_DATABASE_URL: postgresql+asyncpg://iweioo_platform:not-a-secret@127.0.0.1:5433/iweioo_platform
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: apps/api/pyproject.toml
+
+      - name: Install Platform API
+        run: python -m pip install -e "apps/api[dev]"
+
+      - name: Start Platform PostgreSQL
+        run: docker compose --file "$PLATFORM_COMPOSE_FILE" up --detach --quiet-pull
+
+      - name: Exercise migrations and inspect schema
+        run: |
+          for attempt in $(seq 1 30); do
+            if docker compose --file "$PLATFORM_COMPOSE_FILE" exec -T platform-db \
+              pg_isready -U iweioo_platform -d iweioo_platform; then
+              break
+            fi
+            if [ "$attempt" -eq 30 ]; then
+              echo "Platform PostgreSQL did not become ready within 60 seconds" >&2
+              exit 1
+            fi
+            sleep 2
+          done
+          alembic -c apps/api/alembic.ini upgrade head
+          alembic -c apps/api/alembic.ini downgrade base
+          alembic -c apps/api/alembic.ini upgrade head
+          python -m pytest apps/api/tests/test_postgres.py
+
+      - name: Show Platform PostgreSQL logs on failure
+        if: failure()
+        run: docker compose --file "$PLATFORM_COMPOSE_FILE" logs --no-color
+
+      - name: Stop Platform PostgreSQL
+        if: always()
+        run: docker compose --file "$PLATFORM_COMPOSE_FILE" down --volumes --remove-orphans

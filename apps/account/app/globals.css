@@ -43,7 +43,9 @@ a {
 }
 
 button,
-input {
+input,
+select,
+textarea {
   font: inherit;
 }
 
@@ -261,12 +263,23 @@ input {
 }
 
 .verified-badge,
+.durable-badge,
 .consent-status {
   padding: 6px 11px;
   border: 1px solid rgba(85, 209, 135, 0.28);
   border-radius: var(--pill);
   background: rgba(85, 209, 135, 0.08);
   color: var(--green);
+  font-size: 0.76rem;
+  white-space: nowrap;
+}
+
+.durable-badge {
+  padding: 6px 11px;
+  border: 1px solid rgba(121, 201, 255, 0.28);
+  border-radius: var(--pill);
+  background: rgba(22, 135, 255, 0.08);
+  color: var(--cyan);
   font-size: 0.76rem;
   white-space: nowrap;
 }
@@ -319,6 +332,82 @@ dd {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
+}
+
+.profile-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.profile-input {
+  display: grid;
+  gap: 8px;
+}
+
+.profile-input > span {
+  color: var(--faint);
+  font-size: 0.78rem;
+}
+
+.profile-input input,
+.profile-input select,
+.profile-input textarea {
+  width: 100%;
+  min-height: 48px;
+  padding: 11px 13px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  outline: none;
+  background: rgba(255, 255, 255, 0.035);
+  color: var(--ink);
+}
+
+.profile-input select option {
+  background: var(--surface-2);
+}
+
+.profile-input textarea {
+  min-height: 96px;
+  resize: vertical;
+}
+
+.profile-input input:focus,
+.profile-input select:focus,
+.profile-input textarea:focus {
+  border-color: rgba(121, 201, 255, 0.62);
+  box-shadow: 0 0 0 3px rgba(22, 135, 255, 0.12);
+}
+
+.profile-input-wide,
+.profile-form-actions {
+  grid-column: 1 / -1;
+}
+
+.profile-form-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.profile-form-actions button,
+.consent-control button {
+  min-height: 40px;
+  padding: 0 18px;
+  border: 1px solid var(--blue);
+  border-radius: var(--pill);
+  background: var(--blue);
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.profile-form-actions button:disabled,
+.consent-control button:disabled {
+  cursor: wait;
+  opacity: 0.58;
 }
 
 .profile-field {
@@ -374,6 +463,25 @@ dd {
   border-color: rgba(255, 255, 255, 0.14);
   background: rgba(255, 255, 255, 0.04);
   color: var(--muted);
+}
+
+.consent-status-granted {
+  border-color: rgba(85, 209, 135, 0.28);
+  background: rgba(85, 209, 135, 0.08);
+  color: var(--green);
+}
+
+.consent-control {
+  display: grid;
+  justify-items: end;
+  gap: 12px;
+  min-width: 130px;
+}
+
+.consent-error {
+  display: block;
+  margin-top: 7px;
+  color: #ff8e8e !important;
 }
 
 .session-details {
@@ -456,11 +564,14 @@ dd {
 
   .account-details,
   .session-details,
-  .profile-grid {
+  .profile-grid,
+  .profile-form {
     grid-template-columns: 1fr;
   }
 
   .profile-field-wide,
+  .profile-input-wide,
+  .profile-form-actions,
   .detail-wide {
     grid-column: auto;
   }
@@ -471,5 +582,9 @@ dd {
 
   .consent-status {
     width: fit-content;
+  }
+
+  .consent-control {
+    justify-items: start;
   }
 }

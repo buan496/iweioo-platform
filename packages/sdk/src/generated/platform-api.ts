@@ -516,6 +516,7 @@ export interface components {
         Cursor: string;
         PageLimit: number;
         IdempotencyKey: string;
+        ConsentIdempotencyKey: string;
         HoldId: string;
     };
     requestBodies: never;
@@ -610,6 +611,7 @@ export interface operations {
             };
             400: components["responses"]["Problem"];
             401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
         };
     };
     listCurrentUserApplications: {
@@ -681,7 +683,9 @@ export interface operations {
     setCurrentUserConsent: {
         parameters: {
             query?: never;
-            header?: never;
+            header: {
+                "Idempotency-Key": components["parameters"]["ConsentIdempotencyKey"];
+            };
             path: {
                 purpose: string;
             };
@@ -704,6 +708,8 @@ export interface operations {
             };
             400: components["responses"]["Problem"];
             401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
         };
     };
     getCurrentUserCreditAccount: {

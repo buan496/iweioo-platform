@@ -87,7 +87,7 @@
       "patch": {
         "tags": ["Account"],
         "operationId": "updateCurrentUserProfile",
-        "security": [{ "userOidc": ["openid", "profile"] }],
+        "security": [{ "userOidc": ["openid", "profile", "email"] }],
         "requestBody": {
           "required": true,
           "content": {
@@ -106,7 +106,8 @@
             }
           },
           "400": { "$ref": "#/components/responses/Problem" },
-          "401": { "$ref": "#/components/responses/Problem" }
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" }
         }
       }
     },
@@ -157,7 +158,7 @@
       "get": {
         "tags": ["Consent"],
         "operationId": "listCurrentUserConsents",
-        "security": [{ "userOidc": ["openid", "profile"] }],
+        "security": [{ "userOidc": ["openid", "profile", "email"] }],
         "responses": {
           "200": {
             "description": "Current consent state by purpose.",
@@ -178,7 +179,7 @@
       "put": {
         "tags": ["Consent"],
         "operationId": "setCurrentUserConsent",
-        "security": [{ "userOidc": ["openid", "profile"] }],
+        "security": [{ "userOidc": ["openid", "profile", "email"] }],
         "parameters": [
           {
             "name": "purpose",
@@ -188,7 +189,8 @@
               "type": "string",
               "pattern": "^[a-z][a-z0-9_.-]{2,63}$"
             }
-          }
+          },
+          { "$ref": "#/components/parameters/ConsentIdempotencyKey" }
         ],
         "requestBody": {
           "required": true,
@@ -208,7 +210,9 @@
             }
           },
           "400": { "$ref": "#/components/responses/Problem" },
-          "401": { "$ref": "#/components/responses/Problem" }
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" }
         }
       }
     },
@@ -520,6 +524,17 @@
         "in": "header",
         "required": true,
         "schema": { "type": "string", "minLength": 16, "maxLength": 128 }
+      },
+      "ConsentIdempotencyKey": {
+        "name": "Idempotency-Key",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "minLength": 16,
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9._:-]+$"
+        }
       },
       "HoldId": {
         "name": "hold_id",

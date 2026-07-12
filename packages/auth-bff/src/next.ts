@@ -1,6 +1,7 @@
 import "server-only";
 
 import { randomUUID } from "node:crypto";
+import { setTimeout as wait } from "node:timers/promises";
 import { NextRequest, NextResponse } from "next/server";
 import {
   loadAuthConfig,
@@ -12,16 +13,27 @@ import { verifiedUserFromClaims, type AuthIntent, type BffSession } from "./mode
 import {
   beginAuthorization,
   buildRemoteLogoutUrl,
-  exchangeAuthorizationCode
+  exchangeAuthorizationCode,
+  refreshSessionTokens
 } from "./oidc";
 import { constantTimeEqual, isSameOriginPost, randomHandle, safeReturnPath } from "./security";
 import {
+  acquireSessionRefreshLock,
   createOidcTransaction,
   createBffSession,
   deleteBffSession,
   getBffSession,
+  releaseSessionRefreshLock,
+  replaceBffSession,
   takeOidcTransaction
 } from "./store";
+
+export type AuthenticatedBffContext = {
+  config: AuthConfig;
+  session: BffSession;
+};
+
+const ACCESS_TOKEN_REFRESH_WINDOW_MS = 30_000;
 
 function safeErrorName(error: unknown): string {
   return error instanceof Error ? error.name : "unknown_error";
@@ -231,6 +243,61 @@ export async function handleSessionGet(request: NextRequest) {
       }
     );
   }
+}
+
+export async function getAuthenticatedBffContext(
+  request: NextRequest
+): Promise<AuthenticatedBffContext | null> {
+  const config = loadAuthConfig();
+  const handle = request.cookies.get(config.sessionCookieName)?.value;
+  if (!handle) {
+    return null;
+  }
+
+  let session = await getBffSession(config, handle);
+  if (!session || Date.parse(session.expiresAt) <= Date.now()) {
+    return null;
+  }
+  if (Date.parse(session.accessTokenExpiresAt) > Date.now() + ACCESS_TOKEN_REFRESH_WINDOW_MS) {
+    return { config, session };
+  }
+
+  const lockOwner = randomHandle();
+  if (await acquireSessionRefreshLock(config, handle, lockOwner)) {
+    try {
+      const latest = await getBffSession(config, handle);
+      if (!latest || Date.parse(latest.expiresAt) <= Date.now()) {
+        return null;
+      }
+      session =
+        Date.parse(latest.accessTokenExpiresAt) > Date.now() + ACCESS_TOKEN_REFRESH_WINDOW_MS
+          ? latest
+          : await refreshSessionTokens(config, latest);
+      if (!(await replaceBffSession(config, handle, session))) {
+        return null;
+      }
+      return { config, session };
+    } finally {
+      await releaseSessionRefreshLock(config, handle, lockOwner);
+    }
+  }
+
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    await wait(80);
+    const refreshed = await getBffSession(config, handle);
+    if (!refreshed || Date.parse(refreshed.expiresAt) <= Date.now()) {
+      return null;
+    }
+    if (Date.parse(refreshed.accessTokenExpiresAt) > Date.now() + ACCESS_TOKEN_REFRESH_WINDOW_MS) {
+      return { config, session: refreshed };
+    }
+    session = refreshed;
+  }
+
+  if (Date.parse(session.accessTokenExpiresAt) > Date.now()) {
+    return { config, session };
+  }
+  throw new Error("Access token refresh did not complete before expiry");
 }
 
 export async function handleLogoutPost(request: NextRequest) {

@@ -1,0 +1,25 @@
+name: iweioo-platform-data-local
+
+services:
+  platform-db:
+    image: postgres:18.4-alpine3.24
+    environment:
+      POSTGRES_DB: iweioo_platform
+      POSTGRES_USER: iweioo_platform
+      POSTGRES_PASSWORD: ${PLATFORM_DB_PASSWORD:?set PLATFORM_DB_PASSWORD in the local env file}
+    ports:
+      - "127.0.0.1:${PLATFORM_DB_PORT:-5433}:5432"
+    volumes:
+      - platform-postgres:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U iweioo_platform -d iweioo_platform"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 512m
+
+volumes:
+  platform-postgres:

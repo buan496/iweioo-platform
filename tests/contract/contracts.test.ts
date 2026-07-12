@@ -50,6 +50,9 @@ test("platform OpenAPI contract contains unique operations and required boundari
   const paths = contract.paths as JsonObject;
   const requiredPaths = [
     "/users/me",
+    "/users/me/profile",
+    "/users/me/consents",
+    "/users/me/consents/{purpose}",
     "/users/me/credit-account",
     "/users/me/growth-profile",
     "/users/me/data-requests",
@@ -70,6 +73,15 @@ test("platform OpenAPI contract contains unique operations and required boundari
   const schemas = (components.schemas ?? {}) as JsonObject;
   const microAmount = schemas.MicroAmount as JsonObject;
   assert.equal(microAmount.type, "string");
+
+  const consentOperation = ((paths["/users/me/consents/{purpose}"] as JsonObject)
+    .put as JsonObject);
+  const consentParameters = consentOperation.parameters as JsonObject[];
+  assert.ok(
+    consentParameters.some(
+      (parameter) => parameter.$ref === "#/components/parameters/ConsentIdempotencyKey"
+    )
+  );
 });
 
 test("event schema excludes sensitive classification and examples use safe envelopes", () => {

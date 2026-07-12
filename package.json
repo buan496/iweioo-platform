@@ -19,6 +19,7 @@
     "sync:projects": "npm run sync:projects --workspace @iweioo/web",
     "generate:sdk": "npm run generate --workspace @iweioo/sdk",
     "identity:validate": "docker compose --file deploy/compose/identity.compose.yml config --no-interpolate",
+    "platform-data:validate": "docker compose --file deploy/compose/platform-data.compose.yml config --no-interpolate",
     "lint": "npm run lint --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm run test:contracts && npm run test --workspaces --if-present",

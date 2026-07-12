@@ -115,7 +115,9 @@ ports bind to loopback; database and SMTP ports remain private.
 The imported Web clients are confidential BFF clients, require Authorization
 Code plus PKCE `S256`, use one exact callback URI, disable implicit and direct
 password grants, and receive an audience restricted to their client ID. No
-client secret or privileged user is committed.
+client secret or privileged user is committed. A bearer-only Platform API
+client supplies the API audience; the Account access token includes that
+audience in addition to its own client audience.
 
 The portal and account center use the same server-only `@iweioo/auth-bff`
 implementation at `/auth/login`, `/auth/register`, `/auth/callback`,
@@ -135,10 +137,18 @@ cookie is introduced. A local end-to-end smoke confirmed that authenticating
 once at the portal let the account client reuse the Keycloak SSO session while
 creating a separate BFF session for the same verified `sub`.
 
-The account center exposes verified identity, current-session metadata, and
-truthful readiness states for profile and optional consent. Durable profile and
-consent writes remain owned by the Platform API/PostgreSQL slice and are not
-emulated with browser or process memory.
+The account BFF uses its server-side session token to call the Platform API and
+refreshes short-lived access tokens under an app-scoped Redis lock. Browser
+mutations require same-origin fetch metadata and JSON bodies; tokens never enter
+browser storage or responses.
+
+The Platform API accepts only RS256 access tokens with the configured issuer,
+`iweioo-platform-api` audience, `iweioo-account` authorized party, expiry,
+required scopes, verified email, and UUID subject. It creates the user
+projection idempotently, binds all profile/consent operations to that subject,
+and records consent evidence and privacy-safe audit metadata in PostgreSQL.
+Missing consent evidence means not granted. A grant is valid only for the
+currently registered policy version.
 
 This profile is evidence for local contract development only. `start-dev`,
 Mailpit, loopback Redis publishing, localhost redirect URIs, and bootstrap

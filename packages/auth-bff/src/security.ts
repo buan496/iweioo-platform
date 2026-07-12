@@ -33,7 +33,14 @@ export function constantTimeEqual(left: string, right: string): boolean {
 }
 
 export function isSameOriginPost(request: Request, expectedOrigin: string): boolean {
-  if (request.method !== "POST" || request.headers.get("origin") !== expectedOrigin) {
+  return request.method === "POST" && isSameOriginMutation(request, expectedOrigin);
+}
+
+export function isSameOriginMutation(request: Request, expectedOrigin: string): boolean {
+  if (
+    !["PATCH", "POST", "PUT", "DELETE"].includes(request.method) ||
+    request.headers.get("origin") !== expectedOrigin
+  ) {
     return false;
   }
   const fetchSite = request.headers.get("sec-fetch-site");
