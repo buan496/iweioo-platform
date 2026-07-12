@@ -67,13 +67,15 @@ test("local OIDC clients are confidential BFF clients with exact PKCE routes", (
     "iweioo-interview": 3100,
     "iweioo-portal": 3000
   };
+  const apiClient = clients.find((client) => client.clientId === "iweioo-platform-api");
+  const webClients = clients.filter((client) => client.clientId !== "iweioo-platform-api");
 
   assert.deepEqual(
     clients.map((client) => client.clientId).sort(),
-    Object.keys(expectedPorts).sort()
+    [...Object.keys(expectedPorts), "iweioo-platform-api"].sort()
   );
 
-  for (const client of clients) {
+  for (const client of webClients) {
     const clientId = String(client.clientId);
     const origin = `http://localhost:${expectedPorts[clientId]}`;
     assert.equal(client.publicClient, false);
@@ -91,10 +93,23 @@ test("local OIDC clients are confidential BFF clients with exact PKCE routes", (
     assert.ok(!JSON.stringify(client).includes("*"));
 
     const mappers = client.protocolMappers as JsonObject[];
-    const audience = mappers.find((mapper) => mapper.protocolMapper === "oidc-audience-mapper");
+    const audience = mappers.find(
+      (mapper) =>
+        mapper.protocolMapper === "oidc-audience-mapper" &&
+        (mapper.config as JsonObject)["included.client.audience"] === clientId
+    );
     assert.ok(audience);
-    assert.equal((audience.config as JsonObject)["included.client.audience"], clientId);
   }
+
+  assert.ok(apiClient);
+  assert.equal(apiClient.bearerOnly, true);
+  assert.equal(apiClient.publicClient, false);
+  assert.equal(apiClient.standardFlowEnabled, false);
+  const account = webClients.find((client) => client.clientId === "iweioo-account");
+  const accountAudiences = (account?.protocolMappers as JsonObject[]).map(
+    (mapper) => (mapper.config as JsonObject)["included.client.audience"]
+  );
+  assert.deepEqual(accountAudiences.sort(), ["iweioo-account", "iweioo-platform-api"].sort());
 });
 
 test("portal and account consume the shared server-side OIDC BFF", () => {
@@ -111,6 +126,7 @@ test("portal and account consume the shared server-side OIDC BFF", () => {
   const portalCallback = read("apps/web/app/auth/callback/route.ts");
   const accountCallback = read("apps/account/app/auth/callback/route.ts");
   const accountCopy = read("apps/account/lib/i18n.ts");
+  const accountPlatformProxy = read("apps/account/lib/platform-proxy.ts");
   const accountLayout = read("apps/account/app/[locale]/layout.tsx");
   const portalControls = read("apps/web/components/AuthControls.tsx");
   const portalEnv = read("apps/web/.env.example");
@@ -150,8 +166,11 @@ test("portal and account consume the shared server-side OIDC BFF", () => {
   assert.ok(!handlers.includes("refreshToken: session.refreshToken"));
   assert.match(portalCallback, /handleAuthorizationCallback/);
   assert.match(accountCallback, /handleAuthorizationCallback/);
-  assert.match(accountCopy, /不使用浏览器或临时内存伪造写入/);
+  assert.match(accountCopy, /Platform API 和 PostgreSQL/);
   assert.match(accountCopy, /Not granted/);
+  assert.match(accountPlatformProxy, /getAuthenticatedBffContext/);
+  assert.match(accountPlatformProxy, /Authorization: `Bearer \$\{context\.session\.accessToken\}`/);
+  assert.ok(!accountPlatformProxy.includes("accessToken: context.session.accessToken"));
   assert.match(accountLayout, /NEXT_PUBLIC_PORTAL_URL/);
   assert.match(accountLayout, /https:\/\/iweioo\.com/);
   assert.match(portalControls, /NEXT_PUBLIC_ACCOUNT_URL/);
@@ -159,6 +178,35 @@ test("portal and account consume the shared server-side OIDC BFF", () => {
   assert.match(portalEnv, /^NEXT_PUBLIC_ACCOUNT_URL=http:\/\/localhost:3001$/m);
   assert.match(proxy, /canonicalPublicPath/);
   assert.match(proxy, /NextResponse\.redirect\(target, 308\)/);
+});
+
+test("Platform PostgreSQL profile is pinned, loopback-only, and migration-driven", () => {
+  const compose = read("deploy/compose/platform-data.compose.yml");
+  const migration = read(
+    "apps/api/migrations/versions/20260710_0001_account_profile_consent.py"
+  );
+  const apiConfig = read("apps/api/src/iweioo_api/config.py");
+  const apiAuth = read("apps/api/src/iweioo_api/modules/auth/jwks.py");
+
+  assert.match(compose, /postgres:18\.4-alpine3\.24/);
+  assert.match(compose, /127\.0\.0\.1:\$\{PLATFORM_DB_PORT:-5433\}:5432/);
+  assert.match(compose, /no-new-privileges:true/);
+  assert.ok(!compose.includes(":latest"));
+  for (const table of [
+    "users",
+    "identity_links",
+    "user_profiles",
+    "consents",
+    "consent_events",
+    "audit_events"
+  ]) {
+    assert.match(migration, new RegExp(`"${table}"`));
+  }
+  assert.match(apiConfig, /postgresql\+asyncpg/);
+  assert.match(apiConfig, /HTTPS except on non-production loopback/);
+  assert.match(apiAuth, /algorithms=\["RS256"\]/);
+  assert.match(apiAuth, /oidc_audience/);
+  assert.match(apiAuth, /oidc_allowed_azp/);
 });
 
 test("identity Compose is local-only, pinned, and keeps data services private", () => {

@@ -53,10 +53,10 @@ about, and open-source project pages. Planned subdomains do not receive active
 portal links until their manifest status becomes `available` after release
 gates pass.
 
-The API implements only contract-aligned liveness and readiness. The worker
-implements process lifecycle and a one-shot health probe. Identity, credit,
-usage, database, and queue behavior are intentionally deferred rather than
-represented by unsafe in-memory substitutes.
+The Stage 1 API implemented only contract-aligned liveness and readiness. The
+worker still implements process lifecycle and a one-shot health probe. Credit,
+usage, queue, and lifecycle behavior remain deferred rather than represented by
+unsafe in-memory substitutes.
 
 ## Current Stage 2 behavior
 
@@ -67,10 +67,12 @@ and host-only cookies. Local development cookie names are app-scoped because
 browser cookies do not distinguish ports. Production uses identical `__Host-`
 names safely because `iweioo.com` and `account.iweioo.com` are separate hosts.
 
-The account center currently presents verified identity, current-session, and
-explicit profile/consent readiness states. Profile and consent mutations stay
-disabled until the Platform API and PostgreSQL ownership model are implemented;
-the UI does not simulate durable writes in browser storage.
+The account center presents verified identity and current-session data, then
+uses server-side BFF routes to read and update Platform API profile and consent
+records. The Platform API validates the Account client token against cached
+JWKS and binds every query to its UUID subject. PostgreSQL stores the user
+projection, identity link, profile, current consent, append-only consent
+evidence, and privacy-safe audit metadata. Browser storage is not a data source.
 
 ## Migration and rollback
 
@@ -80,6 +82,7 @@ No existing content URL is changed. Each Next.js Node build is written to its
 own `.next/` directory; public routes remain prerendered while OIDC BFF routes
 execute on demand.
 
-Before merge, rollback is deleting the feature branch. After merge, a rollback
-reverts the workspace PR as one unit; do not manually copy generated or build
-output back to the repository root. No persistent data migration is involved.
+Before merge, rollback is deleting the feature branch. After a persistent-data
+release, application rollback and schema rollback are separate decisions:
+prefer a forward-compatible application rollback and forward migration. Never
+drop production account tables merely because application code is reverted.

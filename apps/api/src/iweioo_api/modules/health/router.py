@@ -1,11 +1,17 @@
-from typing import Literal
+from typing import Annotated, Literal
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel, ConfigDict
+from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from iweioo_api import __version__
+from iweioo_api.database import get_session
+from iweioo_api.errors import ProblemError
 
 router = APIRouter(prefix="/health", tags=["Health"])
+Session = Annotated[AsyncSession, Depends(get_session)]
 
 
 class HealthResponse(BaseModel):
@@ -30,5 +36,13 @@ def get_liveness() -> HealthResponse:
 
 
 @router.get("/ready", response_model=HealthResponse, operation_id="getReadiness")
-def get_readiness() -> HealthResponse:
+async def get_readiness(session: Session) -> HealthResponse:
+    try:
+        await session.execute(text("SELECT 1"))
+    except SQLAlchemyError as error:
+        raise ProblemError(
+            status=503,
+            code="dependency_unavailable",
+            title="A required service dependency is unavailable",
+        ) from error
     return health_response()

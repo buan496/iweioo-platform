@@ -30,6 +30,16 @@ of truth for credentials or credit balance.
 - `consents`: purpose, policy version, grant, revocation, and evidence time.
 - `user_app_states`: first use, last use, and summary state per application.
 
+The first account-data slice implements `users`, `identity_links`,
+`user_profiles`, and `consents`. A verified OIDC subject is projected
+idempotently on its first Platform API request. The current consent row is the
+read model; every grant or revocation also creates an append-only
+`consent_events` record with its policy version, source application, and
+idempotency key. A missing row means that the purpose has never been granted,
+not that consent was implied. Profile and consent mutations also create
+privacy-safe `audit_events` containing changed field names rather than field
+values.
+
 School, major, graduation year, and career goals are optional. The first
 release does not implement organizations, classes, or institutional tenants.
 
@@ -99,7 +109,8 @@ capture, and raw content analytics are prohibited in the first release.
   product references.
 - Backups expire deleted material through the documented backup-retention
   window; deleted data is not restored into an active account.
-- The account center exposes export, deletion, consent, and memory controls.
+- The account center currently exposes profile and consent controls. Export,
+  deletion, and memory-management controls follow in later slices.
 - Audit and security data use a separate documented retention policy and never
   store raw sensitive content.
 

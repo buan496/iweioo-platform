@@ -11,7 +11,12 @@ import {
   isPublicSession,
   verifiedUserFromClaims
 } from "../src/model";
-import { constantTimeEqual, isSameOriginPost, safeReturnPath } from "../src/security";
+import {
+  constantTimeEqual,
+  isSameOriginMutation,
+  isSameOriginPost,
+  safeReturnPath
+} from "../src/security";
 
 const localEnvironment: NodeJS.ProcessEnv = {
   NODE_ENV: "development",
@@ -114,9 +119,15 @@ test("logout origin and CSRF helpers reject cross-site inputs", () => {
     method: "POST",
     headers: { origin: "https://evil.example", "sec-fetch-site": "cross-site" }
   });
+  const sameOriginPatch = new Request("http://localhost:3000/api/platform/profile", {
+    method: "PATCH",
+    headers: { origin: "http://localhost:3000", "sec-fetch-site": "same-origin" }
+  });
 
   assert.equal(isSameOriginPost(sameOrigin, "http://localhost:3000"), true);
   assert.equal(isSameOriginPost(crossOrigin, "http://localhost:3000"), false);
+  assert.equal(isSameOriginMutation(sameOriginPatch, "http://localhost:3000"), true);
+  assert.equal(isSameOriginMutation(crossOrigin, "http://localhost:3000"), false);
   assert.equal(constantTimeEqual("same-token", "same-token"), true);
   assert.equal(constantTimeEqual("same-token", "other-token"), false);
 });

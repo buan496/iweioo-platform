@@ -2,7 +2,7 @@ import "server-only";
 
 import * as client from "openid-client";
 import type { AuthConfig } from "./config";
-import type { AuthIntent, OidcTransaction } from "./model";
+import type { AuthIntent, BffSession, OidcTransaction } from "./model";
 import { hashHandle, randomHandle } from "./security";
 
 type CachedConfiguration = {
@@ -126,4 +126,27 @@ export async function buildRemoteLogoutUrl(config: AuthConfig, idToken: string, 
     id_token_hint: idToken,
     post_logout_redirect_uri: config.postLogoutRedirectUrl
   });
+}
+
+export async function refreshSessionTokens(
+  config: AuthConfig,
+  session: BffSession
+): Promise<BffSession> {
+  const oidc = await getOidcConfiguration(config);
+  const tokens = await client.refreshTokenGrant(oidc, session.refreshToken);
+  if (!tokens.access_token) {
+    throw new Error("OIDC refresh response did not contain an access token");
+  }
+  const expiresIn = tokens.expiresIn() ?? 300;
+  if (!Number.isSafeInteger(expiresIn) || expiresIn < 30) {
+    throw new Error("OIDC refresh response contained an invalid access token lifetime");
+  }
+
+  return {
+    ...session,
+    accessToken: tokens.access_token,
+    refreshToken: tokens.refresh_token ?? session.refreshToken,
+    idToken: tokens.id_token ?? session.idToken,
+    accessTokenExpiresAt: new Date(Date.now() + expiresIn * 1000).toISOString()
+  };
 }

@@ -8,13 +8,21 @@ version = "0.1.0"
 description = "Modular FastAPI boundary for the iweioo platform."
 requires-python = ">=3.12"
 dependencies = [
+  "alembic==1.18.5",
+  "asyncpg==0.31.0",
+  "email-validator==2.3.0",
   "fastapi==0.139.0",
+  "httpx2==2.5.0",
+  "pydantic-settings==2.14.2",
+  "PyJWT[crypto]==2.13.0",
+  "SQLAlchemy==2.0.51",
+  "tzdata==2026.3",
   "uvicorn==0.51.0"
 ]
 
 [project.optional-dependencies]
 dev = [
-  "httpx2==2.5.0",
+  "aiosqlite==0.22.1",
   "mypy==2.2.0",
   "pytest==9.1.1",
   "ruff==0.15.21"

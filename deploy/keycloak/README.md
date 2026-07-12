@@ -89,8 +89,10 @@ exact `http://localhost:3000/auth/callback` and
 - password, token lifetime, brute-force, event, and audit baselines;
 - the five accepted platform roles without assigning privileged users;
 - confidential Portal, Account, Interview, and Defense BFF clients;
+- a bearer-only `iweioo-platform-api` audience;
 - exact localhost callback/logout origins and mandatory PKCE `S256`;
-- per-client audience mappers;
+- per-client audience mappers, with the Account access token additionally
+  scoped for the Platform API;
 - Mailpit-only SMTP with no authentication or external delivery.
 
 Client credentials are generated and stored by local Keycloak, never in the
@@ -107,6 +109,13 @@ local record, attempts refresh-token revocation, and performs RP-initiated
 logout. Transactions expire after ten minutes. Sessions default to the
 Keycloak 30-minute idle window and are further bounded by the issued refresh
 token lifetime.
+
+The account BFF refreshes short-lived access tokens under an app-scoped Redis
+lock before calling the Platform API. It forwards the bearer token only over
+the server-side Platform API boundary; the browser still receives only safe
+account JSON. The Platform API verifies RS256, issuer, audience, authorized
+party, expiry, required scopes, verified email, and UUID subject against cached
+JWKS.
 
 ## Stop and reset
 
@@ -132,7 +141,7 @@ Run the first-start command again after the reset.
 
 This slice does not implement production TLS and proxy headers, real SMTP,
 administrator MFA enforcement, Redis high availability, production secrets,
-access-token refresh on product API calls, or multi-device session management.
+product-subdomain token refresh, or multi-device session management.
 Those controls remain release gates.
 
 References:
