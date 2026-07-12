@@ -9,22 +9,37 @@ import {
   transactionCookieOptions,
   type AuthConfig
 } from "./config";
-import { verifiedUserFromClaims, type AuthIntent, type BffSession } from "./model";
+import {
+  describeSessionDevice,
+  isSessionId,
+  verifiedUserFromClaims,
+  type AuthIntent,
+  type BffSession
+} from "./model";
 import {
   beginAuthorization,
   buildRemoteLogoutUrl,
   exchangeAuthorizationCode,
   refreshSessionTokens
 } from "./oidc";
-import { constantTimeEqual, isSameOriginPost, randomHandle, safeReturnPath } from "./security";
+import {
+  constantTimeEqual,
+  isSameOriginMutation,
+  isSameOriginPost,
+  randomHandle,
+  safeReturnPath
+} from "./security";
 import {
   acquireSessionRefreshLock,
   createOidcTransaction,
   createBffSession,
   deleteBffSession,
   getBffSession,
+  listUserSessions,
   releaseSessionRefreshLock,
   replaceBffSession,
+  revokeAllUserSessions,
+  revokeUserSession,
   takeOidcTransaction
 } from "./store";
 
@@ -150,7 +165,11 @@ export async function handleAuthorizationCallback(request: NextRequest) {
         ? Math.min(config.sessionTtlSeconds, refreshExpiresIn)
         : config.sessionTtlSeconds;
     const session: BffSession = {
+      recordVersion: 2,
+      sessionId: randomUUID(),
+      appId: config.appId,
       user: verifiedUserFromClaims(claims as Record<string, unknown>),
+      device: describeSessionDevice(request.headers.get("user-agent")),
       accessToken: tokens.access_token,
       refreshToken: tokens.refresh_token,
       idToken: tokens.id_token,
@@ -242,6 +261,97 @@ export async function handleSessionGet(request: NextRequest) {
         headers: { ...responseHeaders, "Content-Type": "application/problem+json" }
       }
     );
+  }
+}
+
+export async function handleSessionListGet(request: NextRequest) {
+  try {
+    const config = loadAuthConfig();
+    const handle = request.cookies.get(config.sessionCookieName)?.value;
+    if (!handle) {
+      return problem("authentication-required", "Sign in is required", 401);
+    }
+    const session = await getBffSession(config, handle);
+    if (!session || Date.parse(session.expiresAt) <= Date.now()) {
+      const response = problem("authentication-required", "Sign in is required", 401);
+      expireCookie(response, config.sessionCookieName, config.secureCookies);
+      return response;
+    }
+    const sessions = await listUserSessions(
+      config,
+      session.user.platformUserId,
+      session.sessionId
+    );
+    if (!sessions.some((candidate) => candidate.current)) {
+      throw new Error("The current session is missing from the user session index");
+    }
+    return NextResponse.json(sessions, {
+      headers: { "Cache-Control": "no-store, max-age=0", Vary: "Cookie" }
+    });
+  } catch (error) {
+    console.error(`[auth-sessions] ${safeErrorName(error)}`);
+    return problem("session-unavailable", "Session service is temporarily unavailable", 503);
+  }
+}
+
+export async function handleSessionRevokeDelete(
+  request: NextRequest,
+  sessionId: string
+) {
+  let config: AuthConfig;
+  try {
+    config = loadAuthConfig();
+  } catch {
+    return problem("authentication-unavailable", "Authentication is temporarily unavailable", 503);
+  }
+  const handle = request.cookies.get(config.sessionCookieName)?.value;
+  if (!handle) {
+    return problem("authentication-required", "Sign in is required", 401);
+  }
+  let session: BffSession | null;
+  try {
+    session = await getBffSession(config, handle);
+  } catch {
+    return problem("session-unavailable", "Session service is temporarily unavailable", 503);
+  }
+  if (!session || Date.parse(session.expiresAt) <= Date.now()) {
+    const response = problem("authentication-required", "Sign in is required", 401);
+    expireCookie(response, config.sessionCookieName, config.secureCookies);
+    return response;
+  }
+  const csrfToken = request.headers.get("x-csrf-token");
+  if (
+    !isSameOriginMutation(request, config.appOrigin) ||
+    !csrfToken ||
+    !constantTimeEqual(csrfToken, session.csrfToken)
+  ) {
+    return problem("csrf-rejected", "The session update was rejected", 403);
+  }
+  if (!isSessionId(sessionId)) {
+    return problem("invalid-session-id", "The session identifier is invalid", 400);
+  }
+
+  try {
+    const revoked = await revokeUserSession(
+      config,
+      session.user.platformUserId,
+      sessionId
+    );
+    const current = session.sessionId === sessionId;
+    if (current && !revoked) {
+      await deleteBffSession(config, handle);
+    }
+    const response = NextResponse.json(
+      { revoked: true, current },
+      { headers: { "Cache-Control": "no-store" } }
+    );
+    if (current) {
+      expireCookie(response, config.sessionCookieName, config.secureCookies);
+    }
+    return response;
+  } catch (error) {
+    console.error(`[auth-session-revoke] ${safeErrorName(error)}`);
+    return problem("session-unavailable", "Session service is temporarily unavailable", 503);
   }
 }
 
@@ -364,6 +474,69 @@ export async function handleLogoutPost(request: NextRequest) {
     console.error(`[auth-logout] identity-provider logout unavailable: ${safeErrorName(error)}`);
   }
 
+  return localLogoutResponse(
+    config.appOrigin,
+    config.sessionCookieName,
+    config.secureCookies,
+    remoteLogoutUrl
+  );
+}
+
+export async function handleLogoutAllPost(request: NextRequest) {
+  let config: AuthConfig;
+  try {
+    config = loadAuthConfig();
+  } catch {
+    return problem("authentication-unavailable", "Authentication is temporarily unavailable", 503);
+  }
+  if (!isSameOriginPost(request, config.appOrigin)) {
+    return problem("csrf-rejected", "The logout request was rejected", 403);
+  }
+  const handle = request.cookies.get(config.sessionCookieName)?.value;
+  if (!handle) {
+    return localLogoutResponse(config.appOrigin, config.sessionCookieName, config.secureCookies);
+  }
+
+  let session: BffSession | null;
+  try {
+    session = await getBffSession(config, handle);
+  } catch {
+    return problem("session-unavailable", "Session service is temporarily unavailable", 503);
+  }
+  if (!session) {
+    return localLogoutResponse(config.appOrigin, config.sessionCookieName, config.secureCookies);
+  }
+  const contentLength = Number(request.headers.get("content-length"));
+  const contentType = request.headers.get("content-type") ?? "";
+  if (
+    !Number.isSafeInteger(contentLength) ||
+    contentLength < 1 ||
+    contentLength > 4096 ||
+    !contentType.startsWith("application/x-www-form-urlencoded")
+  ) {
+    return problem("invalid-logout-request", "Invalid logout request", 400);
+  }
+  const rawBody = await request.text();
+  if (new TextEncoder().encode(rawBody).byteLength > 4096) {
+    return problem("invalid-logout-request", "Invalid logout request", 400);
+  }
+  const csrfToken = new URLSearchParams(rawBody).get("csrf_token");
+  if (!csrfToken || !constantTimeEqual(csrfToken, session.csrfToken)) {
+    return problem("csrf-rejected", "The logout request was rejected", 403);
+  }
+
+  try {
+    await revokeAllUserSessions(config, session.user.platformUserId);
+    await deleteBffSession(config, handle);
+  } catch {
+    return problem("session-unavailable", "Session service is temporarily unavailable", 503);
+  }
+  let remoteLogoutUrl: URL | undefined;
+  try {
+    remoteLogoutUrl = await buildRemoteLogoutUrl(config, session.idToken, session.refreshToken);
+  } catch (error) {
+    console.error(`[auth-logout-all] identity-provider logout unavailable: ${safeErrorName(error)}`);
+  }
   return localLogoutResponse(
     config.appOrigin,
     config.sessionCookieName,

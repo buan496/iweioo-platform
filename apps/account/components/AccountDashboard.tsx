@@ -1,7 +1,12 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
-import { isPublicSession, type PublicSession } from "@iweioo/auth-bff/public";
+import {
+  isManagedSessionList,
+  isPublicSession,
+  type ManagedSession,
+  type PublicSession
+} from "@iweioo/auth-bff/public";
 import type { AccountLocale } from "@/lib/i18n";
 import { accountCopy } from "@/lib/i18n";
 import {
@@ -51,6 +56,10 @@ export function AccountDashboard({ locale }: AccountDashboardProps) {
   const copy = accountCopy[locale];
   const [session, setSession] = useState<PublicSession | null>(null);
   const [sessionFailed, setSessionFailed] = useState(false);
+  const [managedSessions, setManagedSessions] = useState<ManagedSession[]>([]);
+  const [managedSessionsFailed, setManagedSessionsFailed] = useState(false);
+  const [revokingSession, setRevokingSession] = useState<string | null>(null);
+  const [revokeFailed, setRevokeFailed] = useState<string | null>(null);
   const [platformUser, setPlatformUser] = useState<CurrentUser | null>(null);
   const [consents, setConsents] = useState<Consent[]>([]);
   const [policies, setPolicies] = useState<ConsentPolicies | null>(null);
@@ -95,6 +104,24 @@ export function AccountDashboard({ locale }: AccountDashboardProps) {
     return () => controller.abort();
   }, [session]);
 
+  useEffect(() => {
+    if (!session?.authenticated) {
+      return;
+    }
+    const controller = new AbortController();
+    void loadManagedSessions(controller.signal)
+      .then((value) => {
+        setManagedSessions(value);
+        setManagedSessionsFailed(false);
+      })
+      .catch((error: unknown) => {
+        if (!(error instanceof DOMException && error.name === "AbortError")) {
+          setManagedSessionsFailed(true);
+        }
+      });
+    return () => controller.abort();
+  }, [session]);
+
   async function retrySession() {
     setSessionFailed(false);
     setSession(null);
@@ -116,6 +143,39 @@ export function AccountDashboard({ locale }: AccountDashboardProps) {
       setApplications(loadedApplications);
     } catch {
       setPlatformFailed(true);
+    }
+  }
+
+  async function retryManagedSessions() {
+    setManagedSessionsFailed(false);
+    try {
+      setManagedSessions(await loadManagedSessions());
+    } catch {
+      setManagedSessionsFailed(true);
+    }
+  }
+
+  async function revokeManagedSession(sessionId: string) {
+    if (!session?.authenticated || !window.confirm(copy.revokeSessionConfirm)) {
+      return;
+    }
+    setRevokingSession(sessionId);
+    setRevokeFailed(null);
+    try {
+      const response = await fetch(`/api/auth/sessions/${sessionId}`, {
+        method: "DELETE",
+        credentials: "same-origin",
+        cache: "no-store",
+        headers: { "X-CSRF-Token": session.csrfToken }
+      });
+      if (!response.ok) {
+        throw new Error("Session revocation failed");
+      }
+      setManagedSessions((current) => current.filter((item) => item.sessionId !== sessionId));
+    } catch {
+      setRevokeFailed(sessionId);
+    } finally {
+      setRevokingSession(null);
     }
   }
 
@@ -217,11 +277,6 @@ export function AccountDashboard({ locale }: AccountDashboardProps) {
       </section>
     );
   }
-
-  const expiresAt = new Intl.DateTimeFormat(locale === "zh" ? "zh-CN" : "en", {
-    dateStyle: "medium",
-    timeStyle: "short"
-  }).format(new Date(session.expiresAt));
 
   return (
     <div className="account-dashboard">
@@ -339,15 +394,46 @@ export function AccountDashboard({ locale }: AccountDashboardProps) {
       <section className="account-panel">
         <div className="panel-heading"><div><p className="panel-index">05</p><h2>{copy.session}</h2></div></div>
         <p className="panel-intro">{copy.sessionIntro}</p>
-        <dl className="session-details">
-          <div><dt>{copy.application}</dt><dd>account.iweioo.com</dd></div>
-          <div><dt>{copy.expires}</dt><dd>{expiresAt}</dd></div>
-          <div><dt>{copy.cookieBoundary}</dt><dd>{copy.hostOnly}</dd></div>
-        </dl>
-        <form className="logout-form" method="post" action="/auth/logout">
-          <input type="hidden" name="csrf_token" value={session.csrfToken} />
-          <button type="submit">{copy.logout}</button>
-        </form>
+        <p className="session-scope-note">{copy.sessionScope}</p>
+        {managedSessionsFailed ? (
+          <div className="session-state-error" role="alert">
+            <span>{copy.sessionListFailed}</span>
+            <button type="button" onClick={() => void retryManagedSessions()}>{copy.retry}</button>
+          </div>
+        ) : managedSessions.length === 0 ? (
+          <div className="account-loading">{copy.loadingSessions}</div>
+        ) : (
+          <div className="managed-session-list">
+            {managedSessions.map((managedSession) => (
+              <ManagedSessionRow
+                key={managedSession.sessionId}
+                session={managedSession}
+                locale={locale}
+                busy={revokingSession === managedSession.sessionId}
+                failed={revokeFailed === managedSession.sessionId}
+                copy={copy}
+                onRevoke={() => void revokeManagedSession(managedSession.sessionId)}
+              />
+            ))}
+          </div>
+        )}
+        <div className="session-actions">
+          <form className="logout-form" method="post" action="/auth/logout">
+            <input type="hidden" name="csrf_token" value={session.csrfToken} />
+            <button type="submit">{copy.logout}</button>
+          </form>
+          <form
+            className="logout-form logout-all-form"
+            method="post"
+            action="/auth/logout-all"
+            onSubmit={(event) => {
+              if (!window.confirm(copy.logoutAllConfirm)) event.preventDefault();
+            }}
+          >
+            <input type="hidden" name="csrf_token" value={session.csrfToken} />
+            <button type="submit">{copy.logoutAll}</button>
+          </form>
+        </div>
       </section>
     </div>
   );
@@ -381,6 +467,19 @@ async function loadPlatformData(signal?: AbortSignal) {
     throw new Error("Platform account response is invalid");
   }
   return { user, consentBundle, applications };
+}
+
+async function loadManagedSessions(signal?: AbortSignal): Promise<ManagedSession[]> {
+  const response = await fetch("/api/auth/sessions", {
+    credentials: "same-origin",
+    cache: "no-store",
+    signal
+  });
+  const value: unknown = await response.json();
+  if (!response.ok || !isManagedSessionList(value)) {
+    throw new Error("Session list response is invalid");
+  }
+  return value;
 }
 
 function ProfileInput({ label, value, onChange, required = false, maxLength }: {
@@ -448,6 +547,47 @@ function ApplicationControl({ application, locale, copy }: {
           <span className="product-link-disabled" aria-disabled="true">{copy.productUnavailable}</span>
         )}
       </div>
+    </article>
+  );
+}
+
+function ManagedSessionRow({ session, locale, busy, failed, copy, onRevoke }: {
+  session: ManagedSession;
+  locale: AccountLocale;
+  busy: boolean;
+  failed: boolean;
+  copy: (typeof accountCopy)[AccountLocale];
+  onRevoke: () => void;
+}) {
+  const formatter = new Intl.DateTimeFormat(locale === "zh" ? "zh-CN" : "en", {
+    dateStyle: "medium",
+    timeStyle: "short"
+  });
+  const category = {
+    desktop: copy.deviceDesktop,
+    mobile: copy.deviceMobile,
+    tablet: copy.deviceTablet,
+    unknown: copy.deviceUnknown
+  }[session.device.category];
+  return (
+    <article className="managed-session-row">
+      <div>
+        <div className="managed-session-title">
+          <h3>{category} · {session.device.operatingSystem}</h3>
+          {session.current ? <span>{copy.currentSession}</span> : null}
+        </div>
+        <p>{copy.application}: {session.appId}</p>
+        <small>{copy.created}: {formatter.format(new Date(session.createdAt))}</small>
+        <small>{copy.expires}: {formatter.format(new Date(session.expiresAt))}</small>
+        {failed ? <small className="session-revoke-error" role="alert">{copy.revokeSessionFailed}</small> : null}
+      </div>
+      {session.current ? (
+        <span className="current-session-note">{copy.useCurrentLogout}</span>
+      ) : (
+        <button type="button" disabled={busy} onClick={onRevoke}>
+          {busy ? copy.revokingSession : copy.revokeSession}
+        </button>
+      )}
     </article>
   );
 }

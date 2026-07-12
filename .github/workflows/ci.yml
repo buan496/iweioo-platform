@@ -104,6 +104,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
       - name: Start local identity profile
         run: docker compose --file "$IDENTITY_COMPOSE_FILE" up --detach --quiet-pull
 
@@ -127,6 +136,11 @@ jobs:
           curl --fail --silent --show-error http://127.0.0.1:8025/api/v1/info > /dev/null
           docker compose --file "$IDENTITY_COMPOSE_FILE" exec -T identity-session \
             sh -ec 'REDISCLI_AUTH="$REDIS_PASSWORD" redis-cli ping' | grep --fixed-strings --line-regexp PONG
+
+      - name: Exercise cross-application session registry
+        env:
+          SESSION_SMOKE_REDIS_URL: redis://:${{ env.IDENTITY_REDIS_PASSWORD }}@127.0.0.1:6379/0
+        run: npm run test:session-store --workspace @iweioo/auth-bff
 
       - name: Show identity logs on failure
         if: failure()

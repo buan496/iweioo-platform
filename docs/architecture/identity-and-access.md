@@ -49,6 +49,11 @@ sequenceDiagram
   redirect, not by sharing application cookies.
 - Session identifiers rotate after login and privilege changes.
 - Logout revokes the local session and the identity-provider grant.
+- A shared Redis user index contains only random public session IDs and safe
+  device/application metadata. Cookie handles, record locators, raw User-Agent,
+  IP address, and tokens are excluded.
+- Session listing and revocation are bound to the verified global subject and
+  require same-origin, session-bound CSRF validation for mutations.
 
 ## Token rules
 
@@ -121,7 +126,9 @@ audience in addition to its own client audience.
 
 The portal and account center use the same server-only `@iweioo/auth-bff`
 implementation at `/auth/login`, `/auth/register`, `/auth/callback`,
-`/api/auth/session`, and POST-only `/auth/logout`. They remain separate clients
+`/api/auth/session`, and POST-only `/auth/logout`. The account client also owns
+`/api/auth/sessions`, per-session DELETE routes, and POST-only
+`/auth/logout-all`. They remain separate clients
 and processes. OIDC transaction records are one-time and expire after ten
 minutes. Access, refresh, and ID tokens stay in app-scoped Redis namespaces;
 each browser host receives only its own random opaque session handle. Sessions
@@ -129,6 +136,17 @@ default to the 30-minute realm idle window and are further bounded by the
 refresh-token lifetime. The session API returns an explicit token-free DTO, and
 logout requires both an exact same-origin request and a session-bound CSRF token
 before local deletion, token revocation, and RP-initiated logout.
+
+Each v2 BFF session also has an unrelated random public session ID. All iweioo
+BFF applications use the same protected Redis database for a subject-scoped
+index while keeping token records app-scoped. The index is capped atomically,
+expires with the sessions, and stores only application ID, coarse device/OS,
+creation, and expiry. Locator records are separate from safe metadata. The
+account center can revoke one indexed session or all indexed BFF sessions.
+Logout-all additionally performs normal Keycloak RP logout for the current
+browser; without a privileged Keycloak Admin credential, it does not forcibly
+delete another device's underlying Keycloak browser SSO cookie. That device's
+iweioo BFF sessions are still invalidated.
 
 Local development uses `iweioo_portal_*` and `iweioo_account_*` cookie names
 because cookies are scoped by host, not port. Production uses host-only
@@ -141,6 +159,11 @@ The account BFF uses its server-side session token to call the Platform API and
 refreshes short-lived access tokens under an app-scoped Redis lock. Browser
 mutations require same-origin fetch metadata and JSON bodies; tokens never enter
 browser storage or responses.
+
+The v2 Redis record is intentionally incompatible with the earlier local-only
+record. Before production, rollout clears the non-persistent development Redis
+and users sign in again. A future production migration must drain or explicitly
+expire old sessions rather than silently accepting unindexed records.
 
 The Platform API accepts only RS256 access tokens with the configured issuer,
 `iweioo-platform-api` audience, `iweioo-account` authorized party, expiry,

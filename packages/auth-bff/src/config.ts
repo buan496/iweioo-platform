@@ -12,6 +12,7 @@ export type AuthConfig = {
   transactionCookieName: string;
   sessionTtlSeconds: number;
   transactionTtlSeconds: number;
+  maxSessionsPerUser: number;
 };
 
 const DEFAULT_SESSION_TTL_SECONDS = 30 * 60;
@@ -133,6 +134,13 @@ export function loadAuthConfig(environment: NodeJS.ProcessEnv = process.env): Au
       DEFAULT_TRANSACTION_TTL_SECONDS,
       60,
       15 * 60
+    ),
+    maxSessionsPerUser: parseBoundedSeconds(
+      environment,
+      "AUTH_MAX_SESSIONS_PER_USER",
+      20,
+      2,
+      50
     )
   };
 }

@@ -43,6 +43,9 @@ A production deployment must provide HTTPS origins, a separate confidential
 Keycloak client secret for each application, private Redis over TLS or a
 strictly loopback-only connection,
 reverse-proxy header validation, and persistent process supervision.
+All BFF processes participating in account session management must use the same
+protected Redis database and the same `AUTH_MAX_SESSIONS_PER_USER` value while
+retaining separate application namespaces and host-only cookies.
 Each `APP_ORIGIN` and its Keycloak callback and post-logout URI must match
 exactly. `NEXT_PUBLIC_ACCOUNT_URL` must resolve to the account HTTPS origin.
 The Account BFF must reach the private Platform API, and the API must use a

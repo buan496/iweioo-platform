@@ -66,6 +66,9 @@ their authorization-code, callback, session, and logout routes to
 and host-only cookies. Local development cookie names are app-scoped because
 browser cookies do not distinguish ports. Production uses identical `__Host-`
 names safely because `iweioo.com` and `account.iweioo.com` are separate hosts.
+Token-bearing session records remain app-scoped, while a shared subject-scoped
+Redis index exposes only random public session IDs and coarse safe metadata to
+the account center. Session revocation never relies on a parent-domain cookie.
 
 The account center presents verified identity and current-session data, then
 uses server-side BFF routes to read and update Platform API profile and consent

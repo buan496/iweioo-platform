@@ -1,2 +1,2 @@
-export { isPublicSession } from "./model";
-export type { AuthenticatedUser, PublicSession } from "./model";
+export { isManagedSessionList, isPublicSession } from "./model";
+export type { AuthenticatedUser, ManagedSession, PublicSession } from "./model";

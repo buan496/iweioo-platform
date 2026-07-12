@@ -20,8 +20,9 @@ The Keycloak image uses `start-dev`. Do not deploy this profile to staging or
 production.
 
 CI starts the complete profile from an empty volume, verifies OIDC discovery
-and PKCE `S256`, checks Mailpit and authenticated Redis health, and always
-deletes the ephemeral data.
+and PKCE `S256`, checks Mailpit and authenticated Redis health, exercises the
+cross-application session registry and revocation paths, and always deletes the
+ephemeral data.
 
 ## First start
 
@@ -72,6 +73,10 @@ URL-safe password from `IDENTITY_REDIS_PASSWORD`:
 BFF_REDIS_URL=redis://:<local-redis-password>@127.0.0.1:6379/0
 ```
 
+Keep `AUTH_MAX_SESSIONS_PER_USER` identical across applications; the default is
+20 and the allowed range is 2 through 50. Global BFF session inventory requires
+every participating application to use the same approved Redis database.
+
 Run `npm run dev` for the portal and `npm run dev:account` in a second terminal.
 Open `http://localhost:3000/zh/`, then use Register or Sign in. Verification and
 recovery messages remain inside Mailpit. After authentication, opening
@@ -100,8 +105,10 @@ realm JSON. Each application reads only its own credential from its ignored
 runtime environment.
 
 The shared BFF package stores one-time PKCE transactions and OIDC tokens in
-app-scoped Redis namespaces. The browser receives only host-only opaque
-`HttpOnly`, `SameSite=Lax` cookies. Local portal and account cookie names are
+app-scoped Redis namespaces. A subject-scoped index contains random session IDs
+and safe application/device/timestamp metadata; record locators are stored
+separately and never returned to the browser. The browser receives only
+host-only opaque `HttpOnly`, `SameSite=Lax` cookies. Local portal and account cookie names are
 also app-scoped because localhost ports do not isolate browser cookies.
 Production HTTPS changes their names to the `__Host-` form and enables the
 `Secure` attribute. Logout is a same-origin, CSRF-checked POST that deletes the
@@ -109,6 +116,13 @@ local record, attempts refresh-token revocation, and performs RP-initiated
 logout. Transactions expire after ten minutes. Sessions default to the
 Keycloak 30-minute idle window and are further bounded by the issued refresh
 token lifetime.
+
+The account center can list sessions from every participating iweioo BFF,
+revoke a remote session, or delete all indexed BFF sessions. Logout-all then
+performs RP-initiated Keycloak logout for the current browser. It intentionally
+does not require a realm-management credential, so it cannot force-delete the
+Keycloak SSO browser cookie on a different device; its iweioo BFF records are
+still removed. This boundary is stated in the UI.
 
 The account BFF refreshes short-lived access tokens under an app-scoped Redis
 lock before calling the Platform API. It forwards the bearer token only over
@@ -141,7 +155,8 @@ Run the first-start command again after the reset.
 
 This slice does not implement production TLS and proxy headers, real SMTP,
 administrator MFA enforcement, Redis high availability, production secrets,
-product-subdomain token refresh, or multi-device session management.
+privileged remote Keycloak browser-session termination, or product-subdomain
+token refresh.
 Those controls remain release gates.
 
 References:
