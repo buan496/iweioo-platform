@@ -18,10 +18,10 @@
     "@iweioo/sdk": "0.1.0",
     "@iweioo/ui": "0.1.0",
     "gray-matter": "^4.0.3",
-    "next": "^16.2.10",
+    "next": "^16.2.11",
     "next-mdx-remote": "^6.0.0",
-    "react": "^19.2.7",
-    "react-dom": "^19.2.7"
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.3",
