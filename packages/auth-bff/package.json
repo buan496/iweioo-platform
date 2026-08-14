@@ -15,12 +15,12 @@
     "test:session-store": "tsx scripts/session-store-smoke.ts"
   },
   "dependencies": {
-    "openid-client": "^6.8.4",
-    "redis": "^6.1.0",
+    "openid-client": "^6.8.5",
+    "redis": "^6.2.1",
     "server-only": "^0.0.1"
   },
   "peerDependencies": {
-    "next": "^16.2.10"
+    "next": "^16.3.0"
   },
   "devDependencies": {
     "@types/node": "^26.1.1",
