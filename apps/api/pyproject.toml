@@ -14,7 +14,7 @@ dependencies = [
   "fastapi==0.139.0",
   "httpx2==2.5.0",
   "pydantic-settings==2.14.2",
-  "PyJWT[crypto]==2.13.0",
+  "PyJWT[crypto]==2.15.0",
   "SQLAlchemy==2.0.51",
   "tzdata==2026.3",
   "uvicorn==0.51.0"
